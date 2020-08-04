@@ -1,0 +1,6 @@
+[submodule "cetus-rbx"]
+	path = cetus-rbx
+	url = https://github.com/cetus-app/cetus-rbx
+[submodule "Cmdr"]
+	path = Cmdr
+	url = https://github.com/evaera/Cmdr

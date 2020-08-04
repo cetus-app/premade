@@ -1,0 +1,28 @@
+{
+    "name": "ingame-admin",
+    "tree": {
+      "$className": "DataModel",
+      "HttpService": {
+        "$className": "HttpService",
+        "$properties": {
+          "HttpEnabled": true
+        }
+      },
+      "ServerScriptService": {
+        "$className": "ServerScriptService",
+        "cetus-admin": {
+          "$path": "src",
+          "dependencies": {
+            "$className": "Folder",
+            "cmdr": {
+              "$path": "../../Cmdr/Cmdr"
+            },
+            "cetus-rbx": {
+              "$path": "../../cetus-rbx/src/cetus"
+            }
+          }
+         
+        }
+      }
+    }
+  }
