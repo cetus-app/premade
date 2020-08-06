@@ -56,7 +56,6 @@ end
 function Promo:handlePlayerJoin (Player)
 	Player.CharacterAdded:connect(function()
 		wait(.1)
-
 		local grp = self.http:getGroup()
 		-- if valid
 		if grp.error then

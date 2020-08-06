@@ -32,6 +32,35 @@ pcall(function()
 end)
 wait(.2)
 
+
+-- Instances:
+local ScreenGui = Instance.new("ScreenGui")
+local ImageLabel = Instance.new("ImageLabel")
+local About = Instance.new("TextLabel")
+
+--Properties:
+ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+ImageLabel.Parent = ScreenGui
+ImageLabel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ImageLabel.BackgroundTransparency = 1.000
+ImageLabel.Position = UDim2.new(1, -100, 1, -110)
+ImageLabel.Size = UDim2.new(0, 100, 0, 100)
+ImageLabel.Image = "http://www.roblox.com/asset/?id=5508924263"
+
+About.Name = "About"
+About.Parent = ScreenGui
+About.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+About.BackgroundTransparency = 1.000
+About.Position = UDim2.new(1, -100, 1, -20)
+About.Size = UDim2.new(0, 100, 0, 20)
+About.Font = Enum.Font.SourceSansBold
+About.Text = "Powered by Cetus"
+About.TextColor3 = Color3.fromRGB(63, 61, 86)
+About.TextScaled = true
+About.TextWrapped = true
+
 pcall(function()
 	game.StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
 	game:GetService("StarterGui"):SetCore("ResetButtonCallback", false)
