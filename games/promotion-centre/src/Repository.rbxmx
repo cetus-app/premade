@@ -1,0 +1,6230 @@
+<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4">
+	<Meta name="ExplicitAutoJoints">true</Meta>
+	<External>null</External>
+	<External>nil</External>
+	<Item class="Folder" referent="RBX531DCDE159CF4252BA55AC8E387C77C7">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<string name="Name">Repository</string>
+			<BinaryString name="Tags"></BinaryString>
+		</Properties>
+		<Item class="Folder" referent="RBX4EE1ABE9D5E847E0861CED71BB48028D">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<string name="Name">Packages</string>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+			<Item class="Folder" referent="RBX8389FBB768D54BD7B32D5EB3C9C1D756">
+				<Properties>
+					<BinaryString name="AttributesSerialize"></BinaryString>
+					<string name="Name">RoStrapUI</string>
+					<BinaryString name="Tags"></BinaryString>
+				</Properties>
+				<Item class="ModuleScript" referent="RBX7DE52674FCEB41DC89829751B6015EE8">
+					<Properties>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<Content name="LinkedSource"><null></null></Content>
+						<string name="Name">ChoiceDialog</string>
+						<string name="ScriptGuid">{051A1567-2188-48AC-8365-3775CD0F819F}</string>
+						<ProtectedString name="Source"><![CDATA[-- 2-step Choice Dialog ReplicatedPseudoInstance
+-- @source https://raw.githubusercontent.com/RoStrap/RoStrapUI/master/ChoiceDialog.lua
+-- @rostrap ChoiceDialog
+-- @documentation https://rostrap.github.io/Libraries/RoStrapUI/ChoiceDialog/
+-- @author Validark
+
+-- Note: You should only be using 1 at once, for a given player
+
+local Players = game:GetService("Players")
+local Lighting = game:GetService("Lighting")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Resources = require(ReplicatedStorage:WaitForChild("Resources"))
+
+local Color = Resources:LoadLibrary("Color")
+local Debug = Resources:LoadLibrary("Debug")
+local Tween = Resources:LoadLibrary("Tween")
+local Typer = Resources:LoadLibrary("Typer")
+local Enumeration = Resources:LoadLibrary("Enumeration")
+local PseudoInstance = Resources:LoadLibrary("PseudoInstance")
+local ReplicatedPseudoInstance = Resources:LoadLibrary("ReplicatedPseudoInstance")
+
+local Radio = Resources:LoadLibrary("Radio")
+local Shadow = Resources:LoadLibrary("Shadow")
+local RadioGroup = Resources:LoadLibrary("RadioGroup")
+local RippleButton = Resources:LoadLibrary("RippleButton")
+
+local Screen = Instance.new("ScreenGui")
+Screen.Name = "RoStrapPriorityUIs"
+Screen.DisplayOrder = 2^31 - 2
+
+local DialogBlur = Instance.new("BlurEffect")
+DialogBlur.Size = 0
+DialogBlur.Name = "DialogBlur"
+DialogBlur.Parent = Lighting
+
+local BUTTON_WIDTH_PADDING = 8
+local DISMISS_TIME = 75 / 1000 * 2
+local ENTER_TIME = 150 / 1000 * 2
+
+local Left = Enum.TextXAlignment.Left.Value
+local SourceSansSemibold = Enum.Font.SourceSansSemibold.Value
+
+local Flat = Enumeration.ButtonStyle.Flat.Value
+local InBack = Enumeration.EasingFunction.InBack.Value
+local OutBack = Enumeration.EasingFunction.OutBack.Value
+
+local LocalPlayer, PlayerGui do
+	if RunService:IsClient() then
+		repeat LocalPlayer = Players.LocalPlayer until LocalPlayer or not wait()
+		repeat PlayerGui = LocalPlayer:FindFirstChildOfClass("PlayerGui") until PlayerGui or not wait()
+	end
+end
+
+local Frame do
+	Frame = Instance.new("Frame")
+	Frame.BackgroundTransparency = 1
+	Frame.Position = UDim2.new(0.5, 0, 0.5, 0)
+	Frame.AnchorPoint = Vector2.new(0.5, 0.5)
+	Frame.Size = UDim2.new(1, 0, 1, 0)
+	Frame.Name = "ChoiceDialog"
+
+	local UIScale = Instance.new("UIScale")
+	UIScale.Scale = 0
+	UIScale.Name = "UIScale"
+	UIScale.Parent = Frame
+
+	local Background = Instance.new("ImageLabel")
+	Background.BackgroundTransparency = 1
+	Background.ScaleType = Enum.ScaleType.Slice
+	Background.SliceCenter = Rect.new(4, 4, 256 - 4, 256 - 4)
+	Background.Image = "rbxassetid://1934624205"
+	Background.Size = UDim2.new(0, 280, 0, 117)
+	Background.Position = UDim2.new(0.5, 0, 0.5, 0)
+	Background.AnchorPoint = Vector2.new(0.5, 0.5)
+	Background.Name = "Background"
+	Background.ZIndex = 2
+	Background.Parent = Frame
+
+	local Header = Instance.new("TextLabel")
+	Header.Font = SourceSansSemibold
+	Header.TextSize = 26
+	Header.Size = UDim2.new(1, -24, 0, 64)
+	Header.Position = UDim2.new(0, 24, 0, 1)
+	Header.BackgroundTransparency = 1
+	Header.TextXAlignment = Left
+	Header.TextTransparency = 0.13
+	Header.TextColor3 = Color.Black
+	Header.Name = "Header"
+	Header.ZIndex = 3
+	Header.Parent = Background
+
+	local Border = Instance.new("Frame")
+	Border.BackgroundColor3 = Color.Black
+	Border.BackgroundTransparency = 238 / 255
+	Border.BorderSizePixel = 0
+	Border.Position = UDim2.new(0, 0, 0, 64 - 2 + 1)
+	Border.Size = UDim2.new(1, 0, 0, 1)
+	Border.ZIndex = 3
+	Border.Parent = Background
+
+	local BottomBorder = Border:Clone()
+	BottomBorder.Position = UDim2.new(0, 0, 1, -52 + 2 - 4 + 1)
+	BottomBorder.Parent = Background
+
+	local Shadow = PseudoInstance.new("Shadow")
+	Shadow.Elevation = 8
+	Shadow.Parent = Background
+end
+
+local function OnDismiss(self)
+	if not self.Dismissed then
+		self.OnConfirmed:Fire(LocalPlayer, false)
+		self:Dismiss()
+	end
+end
+
+local function OnConfirm(self)
+	if not self.Dismissed then
+		self.OnConfirmed:Fire(LocalPlayer, self.RadioGroup:GetSelection())
+		self:Dismiss()
+	end
+end
+
+local function ConfirmEnable(ConfirmButton)
+	ConfirmButton.Disabled = false
+end
+
+local function HideUIScale(self)
+	self.UIScale.Parent = nil
+end
+
+local DialogsActive = 0
+
+local function SubDialogsActive()
+	DialogsActive = DialogsActive - 1
+end
+
+local function AdjustButtonSize(Button)
+	Button.Size = UDim2.new(0, Button.TextBounds.X + BUTTON_WIDTH_PADDING * 2, 0, 36)
+end
+
+return PseudoInstance:Register("ChoiceDialog", {
+	Storage = {};
+
+	Internals = {"Object", "ConfirmButton", "DismissButton", "RadioGroup", "AssociatedRadioContainers", "Header", "UIScale", "Background", "Dismissed"};
+
+	Events = {"OnConfirmed"};
+
+	Methods = {
+		Dismiss = function(self)
+			-- Destroys Dialog when done
+			if not self.Dismissed then
+				self.Dismissed = true
+				Tween(self.UIScale, "Scale", 0, InBack, DISMISS_TIME, true, self.Janitor)
+				self.UIScale.Parent = Screen
+				Tween(DialogBlur, "Size", 0, InBack, ENTER_TIME, true)
+			end
+		end;
+		
+		Destroy = function(self)
+			self:Dismiss()
+			self:super("Destroy")
+		end;
+	};
+
+	Properties = {
+		PrimaryColor3 = Typer.AssignSignature(2, Typer.Color3, function(self, PrimaryColor3)
+			self.ConfirmButton.PrimaryColor3 = PrimaryColor3
+			self.DismissButton.PrimaryColor3 = PrimaryColor3
+
+			for Item, ItemContainer in next, self.AssociatedRadioContainers do
+				Item.PrimaryColor3 = PrimaryColor3
+				ItemContainer.PrimaryColor3 = PrimaryColor3
+			end
+
+			self:rawset("PrimaryColor3", PrimaryColor3)
+		end);
+
+		Options = Typer.AssignSignature(2, Typer.ArrayOfStrings, function(self, Options)
+			local NumOptions = #Options
+			self.Background.Size = UDim2.new(0, 280, 0, 117 + 48 * NumOptions)
+
+			for Item, ItemContainer in next, self.AssociatedRadioContainers do
+				Item:Destroy()
+				ItemContainer:Destroy() -- ItemDescriptions are destroyed here
+				self.AssociatedRadioContainers[Item] = nil
+			end
+			
+			if self.RadioGroup then
+				self.Janitor[self.RadioGroup] = self.RadioGroup:Destroy()
+			end
+			
+			self.RadioGroup = PseudoInstance.new("RadioGroup")
+			self.Janitor:Add(self.RadioGroup.SelectionChanged:Connect(ConfirmEnable, self.ConfirmButton), "Disconnect")
+			self.Janitor:Add(self.RadioGroup, "Destroy")
+
+			for i = 1, NumOptions do
+				local ChoiceName = Options[i]
+
+				local ItemContainer = PseudoInstance.new("RippleButton")
+				ItemContainer.Position = UDim2.new(0, 0, 0, 64 + 48 * (i - 1))
+				ItemContainer.Size = UDim2.new(1, 0, 0, 48)
+				ItemContainer.BorderRadius = 0
+				ItemContainer.ZIndex = 5
+				ItemContainer.Style = Flat
+				ItemContainer.Parent = self.Background
+
+				local Item = PseudoInstance.new("Radio")
+				Item.AnchorPoint = Vector2.new(0.5, 0.5)
+				Item.Position = UDim2.new(0, 36, 0.5, 0)
+				Item.ZIndex = 8
+				Item.Parent = ItemContainer.Object
+
+				ItemContainer.PrimaryColor3 = self.PrimaryColor3
+				Item.PrimaryColor3 = self.PrimaryColor3
+
+				self.AssociatedRadioContainers[Item] = ItemContainer
+
+				self.RadioGroup:Add(Item, ChoiceName)
+				ItemContainer.OnPressed:Connect(Item.SetChecked, Item)
+
+				local ItemDescription = Instance.new("TextLabel")
+				ItemDescription.BackgroundTransparency = 1
+				ItemDescription.Position = UDim2.new(0, 48 + 32, 0.5, 0)
+				ItemDescription.TextXAlignment = Left
+				ItemDescription.Font = SourceSansSemibold
+				ItemDescription.TextSize = 20
+				ItemDescription.Text = ChoiceName
+				ItemDescription.TextTransparency = 0.13
+				ItemDescription.ZIndex = 8
+				ItemDescription.Parent = ItemContainer.Object
+			end
+
+			self:rawset("Options", Options)
+		end);
+
+		HeaderText = Typer.AssignSignature(2, Typer.String, function(self, Text)
+			self.Header.Text = Text
+			self:rawset("HeaderText", self.Header.Text)
+		end);
+
+		DismissText = Typer.AssignSignature(2, Typer.String, function(self, Text)
+			local DismissButton = self.DismissButton
+			DismissButton.Text = Text
+			self:rawset("DismissText", DismissButton.Text)
+		end);
+
+		ConfirmText = Typer.AssignSignature(2, Typer.String, function(self, Text)
+			local ConfirmButton = self.ConfirmButton
+			ConfirmButton.Text = Text
+			self:rawset("ConfirmText", ConfirmButton.Text)
+		end);
+
+		Parent = function(self, Parent)
+			if Parent and PlayerGui then
+				Screen.Parent = PlayerGui
+
+				self.UIScale.Parent = Screen
+				self.Object.Parent = Screen
+				
+				AdjustButtonSize(self.DismissButton)
+				AdjustButtonSize(self.ConfirmButton)
+
+				Tween(self.UIScale, "Scale", 1, OutBack, ENTER_TIME, true, HideUIScale, self)
+				Tween(DialogBlur, "Size", 56, OutBack, ENTER_TIME, true)
+			end
+
+			self:rawset("Parent", Parent)
+		end;
+	};
+
+	Init = function(self, ...)
+		self.Object = Frame:Clone()
+		self.UIScale = self.Object.UIScale
+		self.Background = self.Object.Background
+		self.Header = self.Background.Header
+		self.AssociatedRadioContainers = {}
+
+		local ConfirmButton = PseudoInstance.new("RippleButton")
+		ConfirmButton.AnchorPoint = Vector2.new(1, 1)
+		ConfirmButton.Position = UDim2.new(1, -8, 1, -8)
+		ConfirmButton.BorderRadius = 4
+		ConfirmButton.ZIndex = 10
+		ConfirmButton.TextSize = 16
+		ConfirmButton.TextTransparency = 0.13
+		ConfirmButton.Style = Flat
+		ConfirmButton.Parent = self.Background
+		
+		local DismissButton = ConfirmButton:Clone()
+		DismissButton.Position = UDim2.new(0, -8, 1, 0)
+		DismissButton.Parent = ConfirmButton.Object
+		
+		self.Janitor:Add(DismissButton:GetPropertyChangedSignal("TextBounds"):Connect(AdjustButtonSize, DismissButton), "Disconnect")
+		self.Janitor:Add(ConfirmButton:GetPropertyChangedSignal("TextBounds"):Connect(AdjustButtonSize, ConfirmButton), "Disconnect")
+
+		ConfirmButton.Disabled = true
+
+		self.ConfirmButton = ConfirmButton
+		self.DismissButton = DismissButton
+		self.Janitor:Add(ConfirmButton.OnPressed:Connect(OnConfirm, self), "Disconnect")
+		self.Janitor:Add(DismissButton.OnPressed:Connect(OnDismiss, self), "Disconnect")
+
+		self.Janitor:Add(self.Object, "Destroy")
+		self.Janitor:Add(self.UIScale, "Destroy")
+		self.Janitor:Add(SubDialogsActive, true)
+
+		self.PrimaryColor3 = Color3.fromRGB(98, 0, 238)
+		self:superinit(...)
+	end;
+}, ReplicatedPseudoInstance)
+]]></ProtectedString>
+						<BinaryString name="Tags"></BinaryString>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="RBXD79877AFD4C64C0780A09B0F0675A688">
+					<Properties>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<Content name="LinkedSource"><null></null></Content>
+						<string name="Name">Shadow</string>
+						<string name="ScriptGuid">{8A5AA166-95D7-469F-BB9B-48739A738D56}</string>
+						<ProtectedString name="Source"><![CDATA[-- Shadow / Elevation Rendering PseudoInstance
+-- @source https://raw.githubusercontent.com/RoStrap/RoStrapUI/master/Shadow.lua
+-- @rostrap Shadow
+-- @documentation https://rostrap.github.io/Libraries/RoStrapUI/Shadow/
+-- @author Validark
+-- @author AmaranthineCodices - Made the Shadow images and created the rendering framework
+-- @original https://github.com/AmaranthineCodices/roact-material/blob/master/src/Components/Shadow.lua
+
+local SHADOW_TWEEN_TIME = 0.175 -- 0.275
+
+local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
+local Debug = Resources:LoadLibrary("Debug")
+local Tween = Resources:LoadLibrary("Tween")
+local Typer = Resources:LoadLibrary("Typer")
+local Enumeration = Resources:LoadLibrary("Enumeration")
+local PseudoInstance = Resources:LoadLibrary("PseudoInstance")
+
+local Deceleration = Enumeration.EasingFunction.Deceleration.Value
+
+local ShadowImage = Instance.new("ImageLabel")
+ShadowImage.Image = "rbxassetid://1316045217"
+ShadowImage.ImageColor3 = Color3.fromRGB(0, 0, 0)
+ShadowImage.AnchorPoint = Vector2.new(0.5, 0.5)
+ShadowImage.BackgroundTransparency = 1
+ShadowImage.ScaleType = Enum.ScaleType.Slice
+ShadowImage.SliceCenter = Rect.new(10, 10, 118, 118)
+
+Enumeration.ShadowElevation = {
+	Elevation0 = 0;
+	Elevation1 = 1;
+	Elevation2 = 2;
+	Elevation3 = 3;
+	Elevation4 = 4;
+	Elevation6 = 6;
+	Elevation8 = 8;
+	Elevation9 = 9;
+	Elevation12 = 12;
+	Elevation16 = 16;
+}
+
+local ShadowData = {
+	[0] = {
+		Ambient = {
+			Opacity = 0;
+			Blur = 0;
+		};
+
+		Penumbra = {
+			Opacity = 0;
+			Blur = 0;
+		};
+
+		Umbra = {
+			Opacity = 0;
+			Blur = 0;
+		};
+	};
+
+	[1] = {
+		Ambient = {
+			Opacity = 0.2;
+			Blur = 3;
+			Offset = UDim2.new(0, 0, 0, 1);
+		};
+
+		Penumbra = {
+			Opacity = 0.12;
+			Blur = 2;
+			Offset = UDim2.new(0, 0, 0, 2);
+		};
+
+		Umbra = {
+			Opacity = 0.14;
+			Blur = 2;
+		};
+	};
+
+	[2] = {
+		Ambient = {
+			Opacity = 0.2;
+			Blur = 5;
+			Offset = UDim2.new(0, 0, 0, 1);
+		};
+
+		Penumbra = {
+			Opacity = 0.12;
+			Blur = 4;
+			Offset = UDim2.new(0, 0, 0, 3);
+		};
+
+		Umbra = {
+			Opacity = 0.14;
+			Blur = 4;
+		};
+	};
+
+	[3] = {
+		Ambient = {
+			Opacity = 0.2;
+			Blur = 8;
+			Offset = UDim2.new(0, 0, 0, 1);
+		};
+
+		Penumbra = {
+			Opacity = 0.12;
+			Blur = 4;
+			Offset = UDim2.new(0, 0, 0, 3);
+		};
+
+		Umbra = {
+			Opacity = 0.14;
+			Blur = 3;
+			Offset = UDim2.new(0, 0, 0, 3);
+		};
+	};
+
+	[4] = {
+		Ambient = {
+			Opacity = 0.2;
+			Blur = 10;
+			Offset = UDim2.new(0, 0, 0, 1);
+		};
+
+		Penumbra = {
+			Opacity = 0.12;
+			Blur = 5;
+			Offset = UDim2.new(0, 0, 0, 4);
+		};
+
+		Umbra = {
+			Opacity = 0.14;
+			Blur = 4;
+			Offset = UDim2.new(0, 0, 0, 2);
+		};
+	};
+
+	[6] = {
+		Ambient = {
+			Opacity = 0.2;
+			Blur = 5;
+			Offset = UDim2.new(0, 0, 0, 3);
+		};
+
+		Penumbra = {
+			Opacity = 0.12;
+			Blur = 18;
+			Offset = UDim2.new(0, 0, 0, 1);
+		};
+
+		Umbra = {
+			Opacity = 0.14;
+			Blur = 10;
+			Offset = UDim2.new(0, 0, 0, 6);
+		};
+	};
+
+	[8] = {
+		Ambient = {
+			Opacity = 0.2;
+			Blur = 15;
+			Offset = UDim2.new(0, 0, 0, 4);
+		};
+
+		Penumbra = {
+			Opacity = 0.12;
+			Blur = 14;
+			Offset = UDim2.new(0, 0, 0, 3);
+		};
+
+		Umbra = {
+			Opacity = 0.14;
+			Blur = 10;
+			Offset = UDim2.new(0, 0, 0, 8);
+		};
+	};
+
+	[9] = {
+		Ambient = {
+			Opacity = 0.2;
+			Blur = 6;
+			Offset = UDim2.new(0, 0, 0, 5);
+		};
+
+		Penumbra = {
+			Opacity = 0.12;
+			Blur = 16;
+			Offset = UDim2.new(0, 0, 0, 3);
+		};
+
+		Umbra = {
+			Opacity = 0.14;
+			Blur = 12;
+			Offset = UDim2.new(0, 0, 0, 9);
+		};
+	};
+
+	[12] = {
+		Ambient = {
+			Opacity = 0.2;
+			Blur = 8;
+			Offset = UDim2.new(0, 0, 0, 7);
+		};
+
+		Penumbra = {
+			Opacity = 0.12;
+			Blur = 22;
+			Offset = UDim2.new(0, 0, 0, 5);
+		};
+
+		Umbra = {
+			Opacity = 0.14;
+			Blur = 17;
+			Offset = UDim2.new(0, 0, 0, 12);
+		};
+	};
+
+	[16] = {
+		Ambient = {
+			Opacity = 0.2;
+			Blur = 10;
+			Offset = UDim2.new(0, 0, 0, 8);
+		};
+
+		Penumbra = {
+			Opacity = 0.12;
+			Blur = 30;
+			Offset = UDim2.new(0, 0, 0, 6);
+		};
+
+		Umbra = {
+			Opacity = 0.14;
+			Blur = 24;
+			Offset = UDim2.new(0, 0, 0, 16);
+		};
+	};
+}
+
+for _, Elevation in next, ShadowData do
+	for _, Data in next, Elevation do
+		Data.Size = UDim2.new(1, Data.Blur, 1, Data.Blur)
+		Data.Position = UDim2.new(0.5, 0, 0.5, 0) + (Data.Offset or UDim2.new())
+		Data.ImageTransparency = 1 - Data.Opacity
+
+		Data.Blur = nil
+		Data.Offset = nil
+		Data.Opacity = nil
+	end
+end
+
+local ShadowNames = {"Ambient", "Penumbra", "Umbra"}
+
+return PseudoInstance:Register("Shadow", {
+	Properties = {
+		Elevation = Typer.AssignSignature(2, Typer.EnumerationOfTypeShadowElevation, function(self, Elevation)
+			if self.Elevation == Elevation then return end
+
+			for Name, Data in next, ShadowData[Elevation.Value] do
+				local Object = self[Name]
+
+				for Property, EndValue in next, Data do
+					Tween(Object, Property, Property == "ImageTransparency" and (1 - EndValue) * self.Transparency + EndValue or EndValue, nil, 0, true)
+				end
+			end
+
+			self:rawset("Elevation", Elevation)
+		end);
+
+		Parent = Typer.AssignSignature(2, Typer.OptionalInstanceWhichIsAGuiObject, function(self, Parent)
+			if Parent then
+				local function ZIndexChanged()
+					local ParentZIndex = Parent.ZIndex
+
+					for i = 1, 3 do
+						self[ShadowNames[i]].ZIndex = ParentZIndex - 1
+					end
+				end
+
+				self.Janitor:Add(Parent:GetPropertyChangedSignal("ZIndex"):Connect(ZIndexChanged), "Disconnect", "ZIndexChanged")
+				ZIndexChanged()
+			end
+
+			for i = 1, 3 do
+				self[ShadowNames[i]].Parent = Parent
+			end
+
+			self:rawset("Parent", Parent)
+		end);
+
+		Transparency = Typer.AssignSignature(2, Typer.Number, function(self, Transparency)
+			for ShadowName, Data in next, ShadowData[self.Elevation.Value] do
+				Tween(self[ShadowName], "ImageTransparency", (1 - Transparency) * Data.ImageTransparency + Transparency, nil, 0, true) -- Stop any ImageTransparency tweens and change to proper Transparency
+			end
+
+			self:rawset("Transparency", Transparency)
+		end);
+
+		Visible = Typer.AssignSignature(2, Typer.Boolean, function(self, Visible)
+			for i = 1, 3 do
+				self[ShadowNames[i]].Visible = Visible
+			end
+
+			self:rawset("Visible", Visible)
+		end);
+	};
+
+	Events = {};
+
+	Methods = {
+		ChangeElevation = Typer.AssignSignature(2, Typer.EnumerationOfTypeShadowElevation, Typer.OptionalNumber, function(self, Elevation, TweenTime)
+			if self.Elevation == Elevation then return end
+
+			for Name, Data in next, ShadowData[Elevation.Value] do
+				local Object = self[Name]
+
+				for Property, EndValue in next, Data do
+					Tween(Object, Property, Property == "ImageTransparency" and (1 - EndValue) * self.Transparency + EndValue or EndValue, Deceleration, TweenTime or SHADOW_TWEEN_TIME, true)
+				end
+			end
+
+			self:rawset("Elevation", Elevation)
+		end);
+	};
+
+	Init = function(self)
+		for i = 1, 3 do
+			local Name = ShadowNames[i]
+			local Shadow = ShadowImage:Clone()
+			Shadow.Name = Name .. "Shadow"
+
+			self:rawset(Name, Shadow)
+			self.Janitor:Add(Shadow, "Destroy")
+			self.Janitor:LinkToInstance(Shadow, true)
+		end
+
+		self:rawset("Transparency", 0)
+		self:rawset("Elevation", Enumeration.ShadowElevation.Elevation0)
+		self:superinit()
+	end;
+})
+]]></ProtectedString>
+						<BinaryString name="Tags"></BinaryString>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="RBX2350DA03B97242D98118175ADFAF653F">
+					<Properties>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<Content name="LinkedSource"><null></null></Content>
+						<string name="Name">Color</string>
+						<string name="ScriptGuid">{9C8168BC-246E-443D-A19A-1DCF1336A02B}</string>
+						<ProtectedString name="Source"><![CDATA[-- Color utilities with Material Design's 2014 Color Palette
+-- @documentation https://rostrap.github.io/Libraries/RoStrapUI/Color/
+-- @source https://raw.githubusercontent.com/RoStrap/RoStrapUI/master/Color.lua
+-- @rostrap Color
+-- @author Validark
+
+local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
+local Table = Resources:LoadLibrary("Table")
+
+local rgb = Color3.fromRGB
+
+local Color = {
+	Red = {
+		[50] = rgb(255, 235, 238);
+		[100] = rgb(255, 205, 210);
+		[200] = rgb(239, 154, 154);
+		[300] = rgb(229, 115, 115);
+		[400] = rgb(239, 83, 80);
+		[500] = rgb(244, 67, 54);
+		[600] = rgb(229, 57, 53);
+		[700] = rgb(211, 47, 47);
+		[800] = rgb(198, 40, 40);
+		[900] = rgb(183, 28, 28);
+
+		Accent = {
+			[100] = rgb(255, 138, 128);
+			[200] = rgb(255, 82, 82);
+			[400] = rgb(255, 23, 68);
+			[700] = rgb(213, 0, 0);
+		};
+	};
+
+	Pink = {
+		[50] = rgb(252, 228, 236);
+		[100] = rgb(248, 187, 208);
+		[200] = rgb(244, 143, 177);
+		[300] = rgb(240, 98, 146);
+		[400] = rgb(236, 64, 122);
+		[500] = rgb(233, 30, 99);
+		[600] = rgb(216, 27, 96);
+		[700] = rgb(194, 24, 91);
+		[800] = rgb(173, 20, 87);
+		[900] = rgb(136, 14, 79);
+
+		Accent = {
+			[100] = rgb(255, 128, 171);
+			[200] = rgb(255, 64, 129);
+			[400] = rgb(245, 0, 87);
+			[700] = rgb(197, 17, 98);
+		};
+	};
+
+	Purple = {
+		[50] = rgb(243, 229, 245);
+		[100] = rgb(225, 190, 231);
+		[200] = rgb(206, 147, 216);
+		[300] = rgb(186, 104, 200);
+		[400] = rgb(171, 71, 188);
+		[500] = rgb(156, 39, 176);
+		[600] = rgb(142, 36, 170);
+		[700] = rgb(123, 31, 162);
+		[800] = rgb(106, 27, 154);
+		[900] = rgb(74, 20, 140);
+
+		Accent = {
+			[100] = rgb(234, 128, 252);
+			[200] = rgb(224, 64, 251);
+			[400] = rgb(213, 0, 249);
+			[700] = rgb(170, 0, 255);
+		};
+	};
+
+	DeepPurple = {
+		[50] = rgb(237, 231, 246);
+		[100] = rgb(209, 196, 233);
+		[200] = rgb(179, 157, 219);
+		[300] = rgb(149, 117, 205);
+		[400] = rgb(126, 87, 194);
+		[500] = rgb(103, 58, 183);
+		[600] = rgb(94, 53, 177);
+		[700] = rgb(81, 45, 168);
+		[800] = rgb(69, 39, 160);
+		[900] = rgb(49, 27, 146);
+
+		Accent = {
+			[100] = rgb(179, 136, 255);
+			[200] = rgb(124, 77, 255);
+			[400] = rgb(101, 31, 255);
+			[700] = rgb(98, 0, 234);
+		};
+	};
+
+	Indigo = {
+		[50] = rgb(232, 234, 246);
+		[100] = rgb(197, 202, 233);
+		[200] = rgb(159, 168, 218);
+		[300] = rgb(121, 134, 203);
+		[400] = rgb(92, 107, 192);
+		[500] = rgb(63, 81, 181);
+		[600] = rgb(57, 73, 171);
+		[700] = rgb(48, 63, 159);
+		[800] = rgb(40, 53, 147);
+		[900] = rgb(26, 35, 126);
+
+		Accent = {
+			[100] = rgb(140, 158, 255);
+			[200] = rgb(83, 109, 254);
+			[400] = rgb(61, 90, 254);
+			[700] = rgb(48, 79, 254);
+		};
+	};
+
+	Blue = {
+		[50] = rgb(227, 242, 253);
+		[100] = rgb(187, 222, 251);
+		[200] = rgb(144, 202, 249);
+		[300] = rgb(100, 181, 246);
+		[400] = rgb(66, 165, 245);
+		[500] = rgb(33, 150, 243);
+		[600] = rgb(30, 136, 229);
+		[700] = rgb(25, 118, 210);
+		[800] = rgb(21, 101, 192);
+		[900] = rgb(13, 71, 161);
+
+		Accent = {
+			[100] = rgb(130, 177, 255);
+			[200] = rgb(68, 138, 255);
+			[400] = rgb(41, 121, 255);
+			[700] = rgb(41, 98, 255);
+		};
+	};
+
+	LightBlue = {
+		[50] = rgb(225, 245, 254);
+		[100] = rgb(179, 229, 252);
+		[200] = rgb(129, 212, 250);
+		[300] = rgb(79, 195, 247);
+		[400] = rgb(41, 182, 246);
+		[500] = rgb(3, 169, 244);
+		[600] = rgb(3, 155, 229);
+		[700] = rgb(2, 136, 209);
+		[800] = rgb(2, 119, 189);
+		[900] = rgb(1, 87, 155);
+
+		Accent = {
+			[100] = rgb(128, 216, 255);
+			[200] = rgb(64, 196, 255);
+			[400] = rgb(0, 176, 255);
+			[700] = rgb(0, 145, 234);
+		};
+	};
+
+	Cyan = {
+		[50] = rgb(224, 247, 250);
+		[100] = rgb(178, 235, 242);
+		[200] = rgb(128, 222, 234);
+		[300] = rgb(77, 208, 225);
+		[400] = rgb(38, 198, 218);
+		[500] = rgb(0, 188, 212);
+		[600] = rgb(0, 172, 193);
+		[700] = rgb(0, 151, 167);
+		[800] = rgb(0, 131, 143);
+		[900] = rgb(0, 96, 100);
+
+		Accent = {
+			[100] = rgb(132, 255, 255);
+			[200] = rgb(24, 255, 255);
+			[400] = rgb(0, 229, 255);
+			[700] = rgb(0, 184, 212);
+		};
+	};
+
+	Teal = {
+		[50] = rgb(224, 242, 241);
+		[100] = rgb(178, 223, 219);
+		[200] = rgb(128, 203, 196);
+		[300] = rgb(77, 182, 172);
+		[400] = rgb(38, 166, 154);
+		[500] = rgb(0, 150, 136);
+		[600] = rgb(0, 137, 123);
+		[700] = rgb(0, 121, 107);
+		[800] = rgb(0, 105, 92);
+		[900] = rgb(0, 77, 64);
+
+		Accent = {
+			[100] = rgb(167, 255, 235);
+			[200] = rgb(100, 255, 218);
+			[400] = rgb(29, 233, 182);
+			[700] = rgb(0, 191, 165);
+		};
+	};
+
+	Green = {
+		[50] = rgb(232, 245, 233);
+		[100] = rgb(200, 230, 201);
+		[200] = rgb(165, 214, 167);
+		[300] = rgb(129, 199, 132);
+		[400] = rgb(102, 187, 106);
+		[500] = rgb(76, 175, 80);
+		[600] = rgb(67, 160, 71);
+		[700] = rgb(56, 142, 60);
+		[800] = rgb(46, 125, 50);
+		[900] = rgb(27, 94, 32);
+
+		Accent = {
+			[100] = rgb(185, 246, 202);
+			[200] = rgb(105, 240, 174);
+			[400] = rgb(0, 230, 118);
+			[700] = rgb(0, 200, 83);
+		};
+	};
+
+	LightGreen = {
+		[50] = rgb(241, 248, 233);
+		[100] = rgb(220, 237, 200);
+		[200] = rgb(197, 225, 165);
+		[300] = rgb(174, 213, 129);
+		[400] = rgb(156, 204, 101);
+		[500] = rgb(139, 195, 74);
+		[600] = rgb(124, 179, 66);
+		[700] = rgb(104, 159, 56);
+		[800] = rgb(85, 139, 47);
+		[900] = rgb(51, 105, 30);
+
+		Accent = {
+			[100] = rgb(204, 255, 144);
+			[200] = rgb(178, 255, 89);
+			[400] = rgb(118, 255, 3);
+			[700] = rgb(100, 221, 23);
+		};
+	};
+
+	Lime = {
+		[50] = rgb(249, 251, 231);
+		[100] = rgb(240, 244, 195);
+		[200] = rgb(230, 238, 156);
+		[300] = rgb(220, 231, 117);
+		[400] = rgb(212, 225, 87);
+		[500] = rgb(205, 220, 57);
+		[600] = rgb(192, 202, 51);
+		[700] = rgb(175, 180, 43);
+		[800] = rgb(158, 157, 36);
+		[900] = rgb(130, 119, 23);
+
+		Accent = {
+			[100] = rgb(244, 255, 129);
+			[200] = rgb(238, 255, 65);
+			[400] = rgb(198, 255, 0);
+			[700] = rgb(174, 234, 0);
+		};
+	};
+
+	Yellow = {
+		[50] = rgb(255, 253, 231);
+		[100] = rgb(255, 249, 196);
+		[200] = rgb(255, 245, 157);
+		[300] = rgb(255, 241, 118);
+		[400] = rgb(255, 238, 88);
+		[500] = rgb(255, 235, 59);
+		[600] = rgb(253, 216, 53);
+		[700] = rgb(251, 192, 45);
+		[800] = rgb(249, 168, 37);
+		[900] = rgb(245, 127, 23);
+
+		Accent = {
+			[100] = rgb(255, 255, 141);
+			[200] = rgb(255, 255, 0);
+			[400] = rgb(255, 234, 0);
+			[700] = rgb(255, 214, 0);
+		};
+	};
+
+	Amber = {
+		[50] = rgb(255, 248, 225);
+		[100] = rgb(255, 236, 179);
+		[200] = rgb(255, 224, 130);
+		[300] = rgb(255, 213, 79);
+		[400] = rgb(255, 202, 40);
+		[500] = rgb(255, 193, 7);
+		[600] = rgb(255, 179, 0);
+		[700] = rgb(255, 160, 0);
+		[800] = rgb(255, 143, 0);
+		[900] = rgb(255, 111, 0);
+
+		Accent = {
+			[100] = rgb(255, 229, 127);
+			[200] = rgb(255, 215, 64);
+			[400] = rgb(255, 196, 0);
+			[700] = rgb(255, 171, 0);
+		};
+	};
+
+	Orange = {
+		[50] = rgb(255, 243, 224);
+		[100] = rgb(255, 224, 178);
+		[200] = rgb(255, 204, 128);
+		[300] = rgb(255, 183, 77);
+		[400] = rgb(255, 167, 38);
+		[500] = rgb(255, 152, 0);
+		[600] = rgb(251, 140, 0);
+		[700] = rgb(245, 124, 0);
+		[800] = rgb(239, 108, 0);
+		[900] = rgb(230, 81, 0);
+
+		Accent = {
+			[100] = rgb(255, 209, 128);
+			[200] = rgb(255, 171, 64);
+			[400] = rgb(255, 145, 0);
+			[700] = rgb(255, 109, 0);
+		};
+	};
+
+	DeepOrange = {
+		[50] = rgb(251, 233, 231);
+		[100] = rgb(255, 204, 188);
+		[200] = rgb(255, 171, 145);
+		[300] = rgb(255, 138, 101);
+		[400] = rgb(255, 112, 67);
+		[500] = rgb(255, 87, 34);
+		[600] = rgb(244, 81, 30);
+		[700] = rgb(230, 74, 25);
+		[800] = rgb(216, 67, 21);
+		[900] = rgb(191, 54, 12);
+
+		Accent = {
+			[100] = rgb(255, 158, 128);
+			[200] = rgb(255, 110, 64);
+			[400] = rgb(255, 61, 0);
+			[700] = rgb(221, 44, 0);
+		};
+	};
+
+	Brown = {
+		[50] = rgb(239, 235, 233);
+		[100] = rgb(215, 204, 200);
+		[200] = rgb(188, 170, 164);
+		[300] = rgb(161, 136, 127);
+		[400] = rgb(141, 110, 99);
+		[500] = rgb(121, 85, 72);
+		[600] = rgb(109, 76, 65);
+		[700] = rgb(93, 64, 55);
+		[800] = rgb(78, 52, 46);
+		[900] = rgb(62, 39, 35);
+	};
+
+	Grey = {
+		[50] = rgb(250, 250, 250);
+		[100] = rgb(245, 245, 245);
+		[200] = rgb(238, 238, 238);
+		[300] = rgb(224, 224, 224);
+		[400] = rgb(189, 189, 189);
+		[500] = rgb(158, 158, 158);
+		[600] = rgb(117, 117, 117);
+		[700] = rgb(97, 97, 97);
+		[800] = rgb(66, 66, 66);
+		[900] = rgb(33, 33, 33);
+	};
+
+	BlueGrey = {
+		[50] = rgb(236, 239, 241);
+		[100] = rgb(207, 216, 220);
+		[200] = rgb(176, 190, 197);
+		[300] = rgb(144, 164, 174);
+		[400] = rgb(120, 144, 156);
+		[500] = rgb(96, 125, 139);
+		[600] = rgb(84, 110, 122);
+		[700] = rgb(69, 90, 100);
+		[800] = rgb(55, 71, 79);
+		[900] = rgb(38, 50, 56);
+	};
+
+	Black = rgb(0, 0, 0);
+	White = rgb(255, 255, 255);
+}
+
+function Color.toRGBString(c, a)
+	local r = c.r * 255 + 0.5
+	local g = c.g * 255 + 0.5
+	local b = c.b * 255 + 0.5
+
+	if a then
+		return ("rgba(%u, %u, %u, %u)"):format(r, g, b, a * 255 + 0.5)
+	else
+		return ("rgb(%u, %u, %u)"):format(r, g, b)
+	end
+end
+Color.ToRGBString = Color.toRGBString
+
+function Color.toHexString(c, a)
+	local r = c.r * 255 + 0.5
+	local g = c.g * 255 + 0.5
+	local b = c.b * 255 + 0.5
+
+	if a then
+		return ("#%X%X%X%X"):format(r, g, b, a * 255 + 0.5)
+	else
+		return ("#%X%X%X"):format(r, g, b)
+	end
+end
+Color.ToHexString = Color.toHexString
+
+local Hash = ("#"):byte()
+
+function Color.fromHex(Hex)
+	-- Converts a 3-digit or 6-digit hex color to RGB
+	-- Takes in a string of the form: "#FFFFFF" or "#FFF" or a 6-digit hexadecimal number
+
+	local Type = type(Hex)
+	local Digits
+
+	if Type == "string" then
+		if Hex:byte() == Hash then Hex = Hex:sub(2) end -- Remove # from beginning
+
+		Digits = #Hex
+
+		if Digits == 8 then -- We got some alpha :D
+			return Color.fromHex(Hex:sub(1, -3)), tonumber(Hex, 16) % 0x000100 / 255
+		end
+
+		Hex = tonumber(Hex, 16) -- Leverage Lua's base converter :D
+	elseif Type == "number" then
+		Digits = 6 -- Assume numbers are 6 digit hex numbers
+	end
+
+	if Digits == 6 then
+		-- Isolate R as first digits 5 and 6, G as 3 and 4, B as 1 and 2
+
+		local R = (Hex - Hex % 0x010000) / 0x010000
+		Hex = Hex - R * 0x010000
+		local G = (Hex - Hex % 0x000100) / 0x000100
+
+		return rgb(R, G, Hex - G * 0x000100)
+	elseif Digits == 3 then
+		-- 3-digit to 6-digit conversion: 123 -> 112233
+		-- Thus, we isolate each digits' value and multiply by 17
+
+		local R = (Hex - Hex % 0x100) / 0x100
+		Hex = Hex - R * 0x100
+		local G = (Hex - Hex % 0x10) / 0x10
+
+		return rgb(R * 0x11, G * 0x11, (Hex - G * 0x10) * 0x11)
+	end
+end
+Color.FromHex = Color.fromHex
+
+local floor = math.floor
+
+function Color.toHex(Color3)
+	return floor(Color3.r * 0xFF + 0.5) * 0x010000 +  floor(Color3.g * 0xFF + 0.5) * 0x000100 + floor(Color3.b * 0xFF + 0.5) * 0x000001
+end
+Color.ToHex = Color.toHex
+
+return Table.Lock(Color)
+]]></ProtectedString>
+						<BinaryString name="Tags"></BinaryString>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="RBX13F3EA403BC74334AF371000A6A1F581">
+					<Properties>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<Content name="LinkedSource"><null></null></Content>
+						<string name="Name">RippleButton</string>
+						<string name="ScriptGuid">{325F912B-ABC6-4D1D-909E-10B873D1CCBD}</string>
+						<ProtectedString name="Source"><![CDATA[-- Material Design Button PseudoInstances with Ripples
+-- @source https://raw.githubusercontent.com/RoStrap/RoStrapUI/master/RippleButton.lua
+-- @rostrap RippleButton
+-- @documentation https://rostrap.github.io/Libraries/RoStrapUI/RippleButton/
+-- @author Validark
+
+local Players = game:GetService("Players")
+local ContentProvider = game:GetService("ContentProvider")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Resources = require(ReplicatedStorage:WaitForChild("Resources"))
+local Debug = Resources:LoadLibrary("Debug")
+local Tween = Resources:LoadLibrary("Tween")
+local Color = Resources:LoadLibrary("Color")
+local Typer = Resources:LoadLibrary("Typer")
+local Enumeration = Resources:LoadLibrary("Enumeration")
+local PseudoInstance = Resources:LoadLibrary("PseudoInstance")
+
+local Shadow = Resources:LoadLibrary("Shadow")
+local Rippler = Resources:LoadLibrary("Rippler")
+
+-- Elevations
+local RAISED_BASE_ELEVATION = 3
+local RAISED_ELEVATION = 8
+
+Enumeration.ButtonStyle = {"Flat", "Outlined", "Contained"}
+
+local StateOpacity = { -- TODO: Derive these values based on the PrimaryColor3's luminosity
+	-- Material Design specs have values which are more subtle, which I don't think look ideal
+	[Enumeration.ButtonStyle.Flat.Value] = {
+		Hover = 0.12;
+		Pressed = 0.265;
+	};
+
+	[Enumeration.ButtonStyle.Outlined.Value] = {
+		Hover = 0.12; -- 0.035;
+		Pressed = 0.265; --0.125;
+	};
+
+	[Enumeration.ButtonStyle.Contained.Value] = {
+		Hover = 0.12; --0.075;
+		Pressed = 0.3; -- 0.265;
+	};
+}
+
+local RaisedImages = {
+	[0] = "rbxassetid://132155326";
+	[2] = "rbxassetid://1934672242";
+	[4] = "rbxassetid://1934624205";
+	[8] = "rbxassetid://1935044829";
+}
+
+local OutlinedImages = {
+	[0] = "rbxassetid://2091129360";
+	[2] = "rbxassetid://1981015282";
+	[4] = "rbxassetid://1981015668";
+	[8] = "rbxassetid://1981285569";
+}
+
+local ImageButton = Instance.new("ImageButton")
+ImageButton.BackgroundTransparency = 1
+ImageButton.ScaleType = Enum.ScaleType.Slice
+
+local TextLabel = Instance.new("TextLabel")
+TextLabel.BackgroundTransparency = 1
+TextLabel.Font = Enum.Font.SourceSansSemibold
+TextLabel.Size = UDim2.new(1, 0, 1, 0)
+TextLabel.Text = ""
+TextLabel.TextSize = 16
+TextLabel.Parent = ImageButton
+
+local OutlineImage = Instance.new("ImageLabel")
+OutlineImage.BackgroundTransparency = 1
+OutlineImage.Size = UDim2.new(1, 0, 1, 0)
+OutlineImage.ScaleType = Enum.ScaleType.Slice
+OutlineImage.ImageTransparency = 0.88
+OutlineImage.Name = "Outline"
+OutlineImage.ImageColor3 = Color.Black
+
+local TOOLTIP_BORDER_RADIUS = 4
+
+local TooltipObject = Instance.new("ImageLabel")
+TooltipObject.BackgroundTransparency = 1
+TooltipObject.ScaleType = Enum.ScaleType.Slice
+TooltipObject.ImageTransparency = 0.1
+TooltipObject.ImageColor3 = Color3.fromRGB(97, 97, 97)
+TooltipObject.Image = RaisedImages[TOOLTIP_BORDER_RADIUS]
+TooltipObject.SliceCenter = Rect.new(TOOLTIP_BORDER_RADIUS, TOOLTIP_BORDER_RADIUS, 256 - TOOLTIP_BORDER_RADIUS, 256 - TOOLTIP_BORDER_RADIUS)
+TooltipObject.Name = "Tooltip"
+TooltipObject.AnchorPoint = Vector2.new(0.5, 0)
+TooltipObject.Position = UDim2.new(0.5, 0, 1, 8)
+
+local ToolTipLabel = TextLabel:Clone()
+ToolTipLabel.TextColor3 = Color.White
+ToolTipLabel.TextSize = 12
+ToolTipLabel.TextTransparency = 1
+ToolTipLabel.Name = "TextLabel"
+ToolTipLabel.Parent = TooltipObject
+
+local Touch = Enum.UserInputType.Touch
+local MouseButton1 = Enum.UserInputType.MouseButton1
+local MouseMovement = Enum.UserInputType.MouseMovement
+
+local Invisify = {UserInputType = MouseMovement}
+
+return PseudoInstance:Register("RippleButton", {
+	WrappedProperties = {
+		Object = {"AnchorPoint", "Active", "Name", "Size", "Position", "LayoutOrder", "NextSelectionDown", "NextSelectionLeft", "NextSelectionRight", "NextSelectionUp", "Parent"};
+		TextLabel = {"Font", "Text", "TextSize", "TextXAlignment", "TextYAlignment"};
+		Shadow = {"Elevation"};
+	};
+
+	Internals = {
+		"TextLabel", "Rippler", "OutlineImage", "OverlayOpacity", "Shadow", "TooltipObject", "InputBegan", "InputEnded", "InputChanged", "RegisteredRippleInputs";
+
+		RenderPrimaryColor3 = function(self, PrimaryColor3)
+			local Luminosity = PrimaryColor3.r * 0.299 + PrimaryColor3.g * 0.587 + PrimaryColor3.b * 0.114
+
+			if self.Style == Enumeration.ButtonStyle.Contained then
+				if self.Disabled then
+					PrimaryColor3 = Color3.fromRGB(204, 204, 204)
+				end
+
+				local TextColor3 = 0.5 < Luminosity and Color.Black or Color.White
+
+				self.Rippler.RippleColor3 = TextColor3
+				self.TextLabel.TextColor3 = TextColor3
+				self.Object.ImageColor3 = PrimaryColor3
+			else
+				if self.Disabled then
+					PrimaryColor3 = Color.Black
+				end
+				self.Rippler.RippleColor3 = PrimaryColor3
+				self.TextLabel.TextColor3 = PrimaryColor3
+				self.Object.ImageColor3 = PrimaryColor3
+			end
+		end;
+	};
+
+	Events = {
+		OnPressed = function(self)
+			local RegisteredRippleInputs = self.RegisteredRippleInputs
+
+			return function(Signal)
+				RegisteredRippleInputs[Enum.UserInputType.Touch.Value] = Signal
+				RegisteredRippleInputs[Enum.UserInputType.MouseButton1.Value] = Signal
+			end, function()
+				RegisteredRippleInputs[Enum.UserInputType.Touch.Value] = nil
+				RegisteredRippleInputs[Enum.UserInputType.MouseButton1.Value] = nil
+			end
+		end;
+
+		OnRightPressed = function(self)
+			local RegisteredRippleInputs = self.RegisteredRippleInputs
+
+			return function(Signal)
+				RegisteredRippleInputs[Enum.UserInputType.MouseButton2.Value] = Signal
+			end, function()
+				RegisteredRippleInputs[Enum.UserInputType.MouseButton2.Value] = nil
+			end
+		end;
+
+		OnMiddlePressed = function(self)
+			local RegisteredRippleInputs = self.RegisteredRippleInputs
+
+			return function(Signal)
+				RegisteredRippleInputs[Enum.UserInputType.MouseButton3.Value] = Signal
+			end, function()
+				RegisteredRippleInputs[Enum.UserInputType.MouseButton3.Value] = nil
+			end
+		end;
+	};
+
+	Properties = {
+		TextTransparency = Typer.AssignSignature(2, Typer.Number, function(self, TextTransparency)
+			if not self.Disabled then
+				self.TextLabel.TextTransparency = TextTransparency
+			end
+
+			self:rawset("TextTransparency", TextTransparency)
+		end);
+
+		Disabled = Typer.AssignSignature(2, Typer.Boolean, function(self, Disabled)
+			if self.Disabled ~= Disabled  then
+
+				if Disabled then
+					if self.Style == Enumeration.ButtonStyle.Contained then
+						self.Shadow.Visible = false
+					end
+
+					self.TextLabel.TextTransparency = 0.62
+
+					self.Janitor:Remove("InputBegan")
+					self.Janitor:Remove("InputEnded")
+					self.Janitor:Remove("InputChanged")
+				else
+					if self.Style == Enumeration.ButtonStyle.Contained then
+						self.Shadow.Visible = true
+					end
+
+					self.TextLabel.TextTransparency = self.TextTransparency
+
+					self.Janitor:Add(self.Object.InputBegan:Connect(self.InputBegan), "Disconnect", "InputBegan")
+					self.Janitor:Add(self.Object.InputEnded:Connect(self.InputEnded), "Disconnect", "InputEnded")
+					self.Janitor:Add(self.Object.InputChanged:Connect(self.InputChanged), "Disconnect", "InputChanged")
+				end
+
+				self:rawset("Disabled", Disabled)
+				self:RenderPrimaryColor3(self.PrimaryColor3)
+			end
+		end);
+
+		Tooltip = Typer.AssignSignature(2, Typer.String, function(self, Tip)
+			if Tip == "" then
+				self.TooltipObject = nil
+				self.Janitor:Remove("TooltipObject")
+			else
+				self.TooltipObject = TooltipObject:Clone()
+				self.TooltipObject.ZIndex = self.ZIndex + 1
+				self.TooltipObject.TextLabel.Text = Tip
+				self.TooltipObject.TextLabel.ZIndex = self.ZIndex + 2
+				self.TooltipObject.Parent = self.Object
+
+				self.Janitor:Add(self.TooltipObject, "Destroy", "TooltipObject")
+			end
+
+			self:rawset("Tooltip", Tip)
+		end);
+
+		BorderRadius = Typer.AssignSignature(2, Typer.EnumerationOfTypeBorderRadius, function(self, BorderRadius)
+			local Value = BorderRadius.Value
+			local SliceCenter = Rect.new(Value, Value, 256 - Value, 256 - Value)
+
+			self.Object.Image = RaisedImages[Value]
+			self.Object.SliceCenter = SliceCenter
+			self.Rippler.BorderRadius = Value
+
+			if self.Style == Enumeration.ButtonStyle.Outlined then
+				self.OutlineImage.Image = OutlinedImages[Value]
+				self.OutlineImage.SliceCenter = SliceCenter
+			end
+
+			self:rawset("BorderRadius", BorderRadius)
+		end);
+
+		Style = Typer.AssignSignature(2, Typer.EnumerationOfTypeButtonStyle, function(self, ButtonStyle)
+			ButtonStyle = Debug.Assert(Enumeration.ButtonStyle:Cast(ButtonStyle))
+			self:rawset("Style", ButtonStyle)
+
+			local StateData = StateOpacity[ButtonStyle.Value]
+			self.OverlayOpacity = StateData.Hover
+			self.Rippler.RippleTransparency = 1 - StateData.Pressed
+
+			local IsOutlined = ButtonStyle == Enumeration.ButtonStyle.Outlined
+
+			if ButtonStyle == Enumeration.ButtonStyle.Flat or IsOutlined then
+				self.Object.ImageTransparency = 1
+				self.Object.ImageColor3 = self.PrimaryColor3
+
+				self.Janitor:Remove("Shadow")
+				self.Shadow = nil
+
+				self:rawset("Elevation", Enumeration.ShadowElevation.Elevation0)
+			elseif ButtonStyle == Enumeration.ButtonStyle.Contained then
+				self.Object.ImageTransparency = 0
+				-- self.Object.ImageColor3 = self.PrimaryColor3
+
+				self.Shadow = PseudoInstance.new("Shadow")
+				self.Shadow.Parent = self.Object
+				self.Janitor:Add(self.Shadow, "Destroy", "Shadow")
+
+				self.Elevation = RAISED_BASE_ELEVATION
+				self.Shadow.Transparency = 0
+			end
+
+			self:RenderPrimaryColor3(self.PrimaryColor3) -- re-render PrimaryColor3
+
+			if IsOutlined then
+				self.OutlineImage = OutlineImage:Clone()
+				self.OutlineImage.ZIndex = self.ZIndex + 2
+				self.OutlineImage.Parent = self.Object
+				local Value = self.BorderRadius.Value
+
+				self.OutlineImage.Image = OutlinedImages[Value]
+				self.OutlineImage.SliceCenter = Rect.new(Value, Value, 256 - Value, 256 - Value)
+				self.Janitor:Add(self.OutlineImage, "Destroy", "OutlineImage")
+			else
+				self.OutlineImage = nil
+				self.Janitor:Remove("OutlineImage")
+			end
+		end);
+
+		PrimaryColor3 = Typer.AssignSignature(2, Typer.Color3, function(self, PrimaryColor3)
+			self:RenderPrimaryColor3(PrimaryColor3)
+			self:rawset("PrimaryColor3", PrimaryColor3)
+		end);
+
+		Visible = Typer.AssignSignature(2, Typer.Boolean, function(self, Visible)
+			self.Object.Visible = Visible
+
+			if Visible then
+				-- self.InputBegan(Invisify)
+			else
+				self.InputEnded(Invisify)
+			end
+
+			self:rawset("Visible", Visible)
+		end);
+
+		ZIndex = Typer.AssignSignature(2, Typer.Number, function(self, ZIndex)
+			self.Object.ZIndex = ZIndex + 1
+			self.TextLabel.ZIndex = ZIndex + 3
+
+			if self.TooltipObject then
+				self.TooltipObject.ZIndex = ZIndex + 1
+				self.TooltipObject.TextLabel.ZIndex = ZIndex + 2
+			end
+
+			if self.OutlineImage then
+				self.OutlineImage.ZIndex = ZIndex + 2
+			end
+
+			self:rawset("ZIndex", ZIndex)
+		end);
+	};
+
+	Methods = {};
+
+	Init = function(self)
+		self:rawset("Object", ImageButton:Clone())
+		self:rawset("PrimaryColor3", Color.Black)
+		self.TextLabel = self.Object.TextLabel
+
+		local function UpdateTextBounds()
+			if self.TextLabel then
+				self:rawset("TextBounds", self.TextLabel.TextBounds)
+			end
+		end
+
+		self.TextLabel:GetPropertyChangedSignal("TextBounds"):Connect(UpdateTextBounds)
+		UpdateTextBounds()
+
+		self.Rippler = PseudoInstance.new("Rippler")
+		self.Rippler.RippleTransparency = 0.68
+		self.Rippler.Parent = self.Object
+
+		self.Style = Enumeration.ButtonStyle.Flat
+		self.BorderRadius = 4
+		self.Tooltip = ""
+		self.Text = ""
+		self.ZIndex = 1
+		self.TextTransparency = 0
+
+		self.Janitor:Add(self.Object, "Destroy")
+		self.Janitor:Add(self.TextLabel, "Destroy")
+		self.Janitor:Add(self.Rippler, "Destroy")
+
+		local Int = 0
+		local IsHovered = false
+		self.RegisteredRippleInputs = {}
+
+		function self.InputBegan(InputObject)
+			local Signal = self.RegisteredRippleInputs[InputObject.UserInputType.Value]
+
+			if Signal then
+				Signal.IsDown = true
+				self.Rippler:Down(InputObject.Position.X, InputObject.Position.Y)
+				if self.Style == Enumeration.ButtonStyle.Contained then
+					self.Shadow:ChangeElevation(RAISED_ELEVATION)
+				end
+			elseif InputObject.UserInputType == MouseMovement then
+				IsHovered = true
+
+				if self.Style == Enumeration.ButtonStyle.Contained then
+					Tween(self.Object, "ImageColor3", self.PrimaryColor3:Lerp(self.Rippler.RippleColor3, self.OverlayOpacity), Enumeration.EasingFunction.Deceleration, 0.1, true)
+				else
+					Tween(self.Object, "ImageTransparency", 1 - self.OverlayOpacity, Enumeration.EasingFunction.Deceleration, 0.1, true)
+				end
+
+				local TooltipObj = self.TooltipObject
+
+				if TooltipObj then
+					-- Over 150ms, tooltips fade in and scale up using the deceleration curve. They fade out over 75ms.
+
+					local NewInt = Int + 1
+					Int = NewInt
+
+					delay(0.5, function()
+						if NewInt == Int then
+							Tween(TooltipObj, "Size", UDim2.new(0, TooltipObj.TextLabel.TextBounds.X + 16, 0, 24), Enumeration.EasingFunction.Deceleration, 0.1, true)
+							Tween(TooltipObj, "ImageTransparency", 0.1, Enumeration.EasingFunction.Deceleration, 0.1, true)
+							Tween(TooltipObj.TextLabel, "TextTransparency", 0, Enumeration.EasingFunction.Deceleration, 0.1, true)
+						end
+					end)
+				end
+			end
+		end
+
+		function self.InputEnded(InputObject)
+			local UserInputType = InputObject.UserInputType
+
+			self.Rippler:Up()
+
+			local Signal = self.RegisteredRippleInputs[UserInputType.Value]
+
+			if Signal and Signal.IsDown then
+				Signal.IsDown = false
+				Signal:Fire()
+			end
+
+			if self.Style == Enumeration.ButtonStyle.Contained then
+				self.Shadow:ChangeElevation(self.Elevation)
+			end
+
+			if UserInputType == MouseMovement then
+				for _, EventSignal in next, self.RegisteredRippleInputs do
+					EventSignal.IsDown = false
+				end
+				if self.Style == Enumeration.ButtonStyle.Contained then
+					Tween(self.Object, "ImageColor3", self.PrimaryColor3, Enumeration.EasingFunction.Deceleration, 0.1, true)
+				else
+					Tween(self.Object, "ImageTransparency", 1, Enumeration.EasingFunction.Deceleration, 0.1, true)
+				end
+				IsHovered = false
+			end
+
+			Int = Int + 1
+
+			local TooltipObj = self.TooltipObject
+
+			if TooltipObj then
+				Tween(TooltipObj, "Size", UDim2.new(), Enumeration.EasingFunction.Deceleration, 0.075, true)
+				Tween(TooltipObj, "ImageTransparency", 1, Enumeration.EasingFunction.Deceleration, 0.075, true)
+				Tween(TooltipObj.TextLabel, "TextTransparency", 1, Enumeration.EasingFunction.Deceleration, 0.075, true)
+			end
+		end
+
+		function self.InputChanged(InputObject)
+			if InputObject.UserInputType == MouseMovement and not IsHovered then
+				IsHovered = true
+				self.InputBegan(InputObject)
+			end
+		end
+
+		self.Disabled = false
+
+		self:superinit()
+	end;
+})
+]]></ProtectedString>
+						<BinaryString name="Tags"></BinaryString>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="RBX814D131D4F6C43DC8EBA776B7C2BA8DD">
+					<Properties>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<Content name="LinkedSource"><null></null></Content>
+						<string name="Name">Rippler</string>
+						<string name="ScriptGuid">{0DDAF685-AF57-4050-A698-56334CAEB629}</string>
+						<ProtectedString name="Source"><![CDATA[-- PseudoInstance to spawn Material Design Ripples inside its Parent (with rounded edge support!)
+-- @documentation https://rostrap.github.io/Libraries/RoStrapUI/Rippler/
+-- @source https://raw.githubusercontent.com/RoStrap/RoStrapUI/master/Rippler.lua
+-- @rostrap Rippler
+-- @author Validark
+
+local ContentProvider = game:GetService("ContentProvider")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Resources = require(ReplicatedStorage:WaitForChild("Resources"))
+local Debug = Resources:LoadLibrary("Debug")
+local Tween = Resources:LoadLibrary("Tween")
+local Color = Resources:LoadLibrary("Color")
+local Typer = Resources:LoadLibrary("Typer")
+local Janitor = Resources:LoadLibrary("Janitor")
+local Enumeration = Resources:LoadLibrary("Enumeration")
+local PseudoInstance = Resources:LoadLibrary("PseudoInstance")
+
+local RIPPLE_START_DIAMETER = 0
+local RIPPLE_OVERBITE = 1.05
+
+local RippleContainer = Instance.new("Frame") -- Make sure ZIndex is higher than parent by 1
+RippleContainer.AnchorPoint = Vector2.new(0.5, 0.5)
+RippleContainer.BackgroundTransparency = 1
+RippleContainer.BorderSizePixel = 0
+RippleContainer.ClipsDescendants = true
+RippleContainer.Name = "RippleContainer"
+RippleContainer.Size = UDim2.new(1, 0, 1, 0)
+RippleContainer.Position = UDim2.new(0.5, 0, 0.5, 0)
+
+local RippleStartSize = UDim2.new(0, RIPPLE_START_DIAMETER, 0, RIPPLE_START_DIAMETER)
+
+local Circle = Instance.new("ImageLabel")
+Circle.AnchorPoint = Vector2.new(0.5, 0.5)
+Circle.BackgroundTransparency = 1
+Circle.Size = RippleStartSize
+Circle.Image = "rbxassetid://517259585"
+Circle.Name = "Ripple"
+
+spawn(function()
+	ContentProvider:PreloadAsync{Circle.Image}
+end)
+
+local Deceleration = Enumeration.EasingFunction.Deceleration.Value
+
+Enumeration.RipplerStyle = {"Full", "Icon", "Round"}
+
+local CornerData = {
+	[2] = {
+		0.380, 0.918,
+		0.918, 1.000,
+	};
+
+	[4] = {
+		0.000, 0.200, 0.690, 0.965,
+		0.200, 0.965, 1.000, 1.000,
+		0.690, 1.000, 1.000, 1.000,
+		0.965, 1.000, 1.000, 1.000,
+	};
+
+	[8] = {
+		0.000, 0.000, 0.000, 0.000, 0.224, 0.596, 0.851, 0.984,
+		0.000, 0.000, 0.000, 0.596, 1.000, 1.000, 1.000, 1.000,
+		0.000, 0.000, 0.722, 1.000, 1.000, 1.000, 1.000, 1.000,
+		0.000, 0.596, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000,
+		0.224, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000,
+		0.596, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000,
+		0.851, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000,
+		0.984, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000,
+	};
+}
+
+do
+	local t = {
+		Radius0 = 0;
+	}
+
+	for BorderRadius, Data in next, CornerData do
+		t["Radius" .. BorderRadius] = BorderRadius
+
+		for i = 1, #Data do
+			Data[i] = 1 - Data[i] -- Opacity -> Transparency
+		end
+	end
+
+	Enumeration.BorderRadius = t
+end
+
+local function MakeContainer(GlobalContainer, Size, Position, ImageTransparency)
+	local Container = Instance.new("ImageLabel")
+
+	if ImageTransparency ~= nil and ImageTransparency ~= 0 then
+		Container.ImageTransparency = ImageTransparency
+	end
+
+	Container.BackgroundTransparency = 1
+	Container.ClipsDescendants = true
+	Container.Position = Position
+	Container.Size = Size
+	Container.Parent = GlobalContainer
+	return Container
+end
+
+local function MakeOuterBorders(RippleFrames, Container, X, Y) -- TODO: Optimize first two frames which can be eliminated
+	local NumRippleFrames = #RippleFrames
+	RippleFrames[NumRippleFrames + 1] = MakeContainer(Container, UDim2.new(1, -2*X, 0, 1), UDim2.new(0, X, 0, Y))
+	RippleFrames[NumRippleFrames + 2] = MakeContainer(Container, UDim2.new(1, -2*X, 0, 1), UDim2.new(0, X, 1, -Y - 1))
+	RippleFrames[NumRippleFrames + 3] = MakeContainer(Container, UDim2.new(0, 1, 1, -2*X), UDim2.new(0, Y, 0, X))
+	RippleFrames[NumRippleFrames + 4] = MakeContainer(Container, UDim2.new(0, 1, 1, -2*X), UDim2.new(1, -Y - 1, 0, X))
+end
+
+local PixelSize = UDim2.new(0, 1, 0, 1)
+
+local function DestroyRoundRipple(self)
+	for i = 1, #self do
+		local Object = self[i]
+		self[i] = nil
+		Object:Destroy()
+	end
+end;
+
+local RoundRippleMetatable = {
+	__index = function(self, i)
+		if i == "Size" then
+			return RippleStartSize
+		elseif i == "ImageTransparency" then
+			return self.Transparency
+		elseif i == "Destroy" then
+			return DestroyRoundRipple
+		end
+	end;
+
+	__newindex = function(self, i, v)
+		if i == "Size" then
+			for a = 1, #self do
+				self[a].Size = v
+			end
+		elseif i == "ImageTransparency" then
+			for a = 1, #self do
+				local RippleFrame = self[a]
+				local Parent = RippleFrame.Parent
+				if Parent then
+					RippleFrame.ImageTransparency = (1 - v) * Parent.ImageTransparency + v
+				end
+			end
+		end
+	end;
+}
+
+return PseudoInstance:Register("Rippler", {
+	Internals = {
+		"CurrentRipple", "RippleFrames";
+
+		SetCurrentRipple = function(self, Ripple)
+			if self.CurrentRipple then
+				Tween(self.CurrentRipple, "ImageTransparency", 1, Deceleration, self.RippleFadeDuration, false, true)
+			end
+
+			self.CurrentRipple = Ripple
+		end
+	};
+
+	Events = {};
+
+	Properties = {
+		Style = Typer.AssignSignature(2, Typer.EnumerationOfTypeRipplerStyle, function(self, Style)
+			self:rawset("Style", Style)
+		end);
+
+		BorderRadius = Typer.AssignSignature(2, Typer.EnumerationOfTypeBorderRadius, function(self, Value)
+			self:rawset("BorderRadius", Value)
+
+			local BorderRadius = Value.Value
+			local RippleFrames = self.RippleFrames
+
+			if RippleFrames then
+				DestroyRoundRipple(RippleFrames)
+			end
+
+			if BorderRadius == 0 then
+				self.Style = Enumeration.RipplerStyle.Full
+			else
+				self.Style = Enumeration.RipplerStyle.Round
+				local Data = CornerData[BorderRadius]
+
+				if not RippleFrames then
+					RippleFrames = {}
+					self.RippleFrames = RippleFrames
+				end
+
+				local MiddleSquarePoint
+				local Container = self.Container
+
+				for j = 0, BorderRadius - 1 do
+					if Data[BorderRadius * j + (j + 1)] == 0 then
+						MiddleSquarePoint = j
+						break
+					end
+				end
+
+				MakeOuterBorders(RippleFrames, Container, BorderRadius, 0)
+
+				-- Make large center frame
+				RippleFrames[#RippleFrames + 1] = MakeContainer(Container, UDim2.new(1, -2 * MiddleSquarePoint, 1, -2 * MiddleSquarePoint), UDim2.new(0, MiddleSquarePoint, 0, MiddleSquarePoint))
+
+				do -- Make other bars to fill
+					local X = MiddleSquarePoint
+					local Y = MiddleSquarePoint - 1
+
+					while Data[BorderRadius * Y + (X + 1)] == 0 do
+						MakeOuterBorders(RippleFrames, Container, X, Y)
+						X = X + 1
+						Y = Y - 1
+					end
+				end
+
+				do
+					local a = 0
+					local amax = BorderRadius * BorderRadius
+					local NumRippleFrames = #RippleFrames
+					while a < amax do
+						local PixelTransparency = Data[a + 1]
+
+						if PixelTransparency ~= 1 then
+							if PixelTransparency ~= 0 then
+								local X = a % BorderRadius
+								local Y = (a - X) / BorderRadius
+								local V = -1 - X
+								local W = -1 - Y
+
+								RippleFrames[NumRippleFrames + 1] = MakeContainer(Container, PixelSize, UDim2.new(0, X, 0, Y), PixelTransparency)
+								RippleFrames[NumRippleFrames + 2] = MakeContainer(Container, PixelSize, UDim2.new(0, X, 1, W), PixelTransparency)
+								RippleFrames[NumRippleFrames + 3] = MakeContainer(Container, PixelSize, UDim2.new(1, V, 0, Y), PixelTransparency)
+								RippleFrames[NumRippleFrames + 4] = MakeContainer(Container, PixelSize, UDim2.new(1, V, 1, W), PixelTransparency)
+								NumRippleFrames = NumRippleFrames + 4
+							end
+						end
+
+						a = a + 1
+					end
+				end
+			end
+		end);
+
+		RippleFadeDuration = Typer.Number;
+		MaxRippleDiameter = Typer.Number;
+		RippleExpandDuration = Typer.Number;
+
+		RippleColor3 = Typer.AssignSignature(2, Typer.Color3, function(self, RippleColor3)
+			if self.CurrentRipple then
+				self.CurrentRipple.ImageColor3 = RippleColor3
+			end
+
+			self:rawset("RippleColor3", RippleColor3)
+		end);
+
+		RippleTransparency = Typer.AssignSignature(2, Typer.Number, function(self, RippleTransparency)
+			if self.CurrentRipple then
+				self.CurrentRipple.ImageTransparency = RippleTransparency
+			end
+
+			self:rawset("RippleTransparency", RippleTransparency)
+		end);
+
+		Container = Typer.AssignSignature(2, Typer.InstanceWhichIsAGuiObject, function(self, Container)
+			if self.BorderRadius.Value ~= 0 then Debug.Error("Can only set container when BorderRadius is 0") end
+
+			self.Janitor:LinkToInstance(Container)
+			self.Janitor:Add(Container, "Destroy", "Container")
+
+			self:rawset("Container", Container)
+		end);
+
+		Parent = function(self, Parent) -- Manually check this one
+			if Parent == nil then
+				self.Janitor:Remove("ZIndexChanged")
+				self.Container.Parent = nil
+			else
+				local ParentType = typeof(Parent)
+				local IsGuiObject = ParentType == "Instance" and Parent:IsA("GuiObject") or ParentType == "userdata" and Parent.ClassName == "RoundedFrame"
+
+				if IsGuiObject and self.Container ~= Parent then
+					local function ZIndexChanged()
+						self.Container.ZIndex = Parent.ZIndex + 1
+					end
+
+					self.Janitor:Add(Parent:GetPropertyChangedSignal("ZIndex"):Connect(ZIndexChanged), "Disconnect", "ZIndexChanged")
+					ZIndexChanged()
+					self.Container.Parent = Parent
+				else
+					Debug.Error("bad argument #2 to Parent, expected GuiObject, got %s", Parent)
+				end
+			end
+
+			self:rawset("Parent", Parent)
+		end;
+	};
+
+	Methods = {
+		Down = Typer.AssignSignature(2, Typer.OptionalNumber, Typer.OptionalNumber, function(self, X, Y)
+			local Container = self.Container
+			local Diameter
+
+			local ContainerAbsoluteSizeX = Container.AbsoluteSize.X
+			local ContainerAbsoluteSizeY = Container.AbsoluteSize.Y
+
+			-- Get near corners
+			X = (X or (0.5 * ContainerAbsoluteSizeX + Container.AbsolutePosition.X)) - Container.AbsolutePosition.X
+			Y = (Y or (0.5 * ContainerAbsoluteSizeY + Container.AbsolutePosition.Y)) - Container.AbsolutePosition.Y
+
+			if self.Style == Enumeration.RipplerStyle.Icon then
+				Diameter = 2 * Container.AbsoluteSize.Y
+				self.Container.ClipsDescendants = false
+			else
+				-- Get far corners
+				local V = X - ContainerAbsoluteSizeX
+				local W = Y - ContainerAbsoluteSizeY
+
+				-- Calculate distance between mouse and corners
+				local a = (X*X + Y*Y) ^ 0.5
+				local b = (X*X + W*W) ^ 0.5
+				local c = (V*V + Y*Y) ^ 0.5
+				local d = (V*V + W*W) ^ 0.5
+
+				-- Find longest distance between mouse and a corner and decide Diameter
+				Diameter = 2 * (a > b and a > c and a > d and a or b > c and b > d and b or c > d and c or d) * RIPPLE_OVERBITE
+
+				-- Cap Diameter
+				if self.MaxRippleDiameter < Diameter then
+					Diameter = self.MaxRippleDiameter
+				end
+			end
+
+			-- Create Ripple Object
+			local Ripple = Circle:Clone()
+			Ripple.ImageColor3 = self.RippleColor3
+			Ripple.ImageTransparency = self.RippleTransparency
+			Ripple.Position = UDim2.new(0, X, 0, Y)
+			Ripple.ZIndex = Container.ZIndex + 1
+			Ripple.Parent = Container
+
+			if self.Style == Enumeration.RipplerStyle.Round and self.BorderRadius.Value ~= 0 then
+				local Ripples = {Transparency = Ripple.ImageTransparency}
+				local RippleFrames = self.RippleFrames
+				local NumRipples = #RippleFrames
+
+				for i = 1, NumRipples do
+					local RippleFrame = RippleFrames[i]
+					local NewRipple = Ripple:Clone()
+					local AbsolutePosition = Ripple.AbsolutePosition - RippleFrame.AbsolutePosition + 0.5*Ripple.AbsoluteSize
+					NewRipple.Position = UDim2.new(0, AbsolutePosition.X, 0, AbsolutePosition.Y)
+					NewRipple.ImageTransparency = (1 - self.RippleTransparency) * RippleFrame.ImageTransparency + self.RippleTransparency
+					NewRipple.Parent = RippleFrame
+
+					Ripples[i] = NewRipple
+				end
+				Ripple:Destroy()
+				Ripple = setmetatable(Ripples, RoundRippleMetatable)
+			end
+
+			self:SetCurrentRipple(Ripple)
+
+			return Tween(Ripple, "Size", UDim2.new(0, Diameter, 0, Diameter), Deceleration, self.RippleExpandDuration)
+		end);
+
+		Up = function(self)
+			self:SetCurrentRipple(false)
+		end;
+
+		Ripple = Typer.AssignSignature(2, Typer.OptionalNumber, Typer.OptionalNumber, Typer.OptionalNumber, function(self, X, Y, Duration)
+			self:Down(X, Y)
+
+			delay(Duration or 0.15, function()
+				self:SetCurrentRipple(false)
+			end)
+		end);
+	};
+
+	Init = function(self, Container)
+		self.Style = Enumeration.RipplerStyle.Full
+		self.BorderRadius = 0
+		self.Container = Container or RippleContainer:Clone()
+		self.RippleTransparency = 0.84
+		self.RippleColor3 = Color.White
+		self.MaxRippleDiameter = math.huge
+		self.RippleExpandDuration = 0.5
+		self.RippleFadeDuration = 1
+		self:superinit()
+	end;
+})
+]]></ProtectedString>
+						<BinaryString name="Tags"></BinaryString>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="RBX93A7132FCBB04D1EB279C2D767739E57">
+					<Properties>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<Content name="LinkedSource"><null></null></Content>
+						<string name="Name">RadioGroup</string>
+						<string name="ScriptGuid">{26B53C4B-3988-4B3F-BB8B-0392200D0443}</string>
+						<ProtectedString name="Source"><![CDATA[-- Simple PseudoInstance wrapper to manage Radio buttons
+-- @source https://raw.githubusercontent.com/RoStrap/RoStrapUI/master/RadioGroup.lua
+-- @rostrap RadioGroup
+-- @documentation https://rostrap.github.io/Libraries/RoStrapUI/RadioGroup/
+-- @author Validark
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Resources = require(ReplicatedStorage:WaitForChild("Resources"))
+local PseudoInstance = Resources:LoadLibrary("PseudoInstance")
+
+return PseudoInstance:Register("RadioGroup", {
+	Internals = {"Radios", "Selection"};
+	Events = {"SelectionChanged"};
+
+	Methods = {
+		Add = function(self, Item, Option)
+			local Radios = self.Radios
+			Radios[#Radios + 1] = Item
+
+			self.Janitor:Add(Item.OnChecked:Connect(function(Checked)
+				if Checked then
+					for i = 1, #Radios do
+						local Radio = Radios[i]
+						if Radio ~= Item then
+							Radio:SetChecked(false)
+						end
+					end
+
+					self.Selection = Option
+					self.SelectionChanged:Fire(Option)
+				end
+			end), "Disconnect")
+		end;
+
+		GetSelection = function(self) -- `Selection` is not directly accessible because you can neither clone a RadioGroup nor set a Selection
+			return self.Selection or nil
+		end;
+	};
+
+	Init = function(self)
+		self.Radios = {}
+		self:superinit()
+	end;
+})
+]]></ProtectedString>
+						<BinaryString name="Tags"></BinaryString>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="RBX6E9277300EAA4E548675FC486249E9D7">
+					<Properties>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<Content name="LinkedSource"><null></null></Content>
+						<string name="Name">Radio</string>
+						<string name="ScriptGuid">{6ED70E9A-1253-4D72-A798-C169D4C22D1A}</string>
+						<ProtectedString name="Source"><![CDATA[-- Material Design Radio Button PseudoInstance
+-- @documentation https://rostrap.github.io/Libraries/RoStrapUI/Radio/
+-- @source https://raw.githubusercontent.com/RoStrap/RoStrapUI/master/Radio.lua
+-- @rostrap Radio
+-- @author Validark
+
+local ContentProvider = game:GetService("ContentProvider")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Resources = require(ReplicatedStorage:WaitForChild("Resources"))
+
+local Color = Resources:LoadLibrary("Color")
+local Tween = Resources:LoadLibrary("Tween")
+local Typer = Resources:LoadLibrary("Typer")
+local Enumeration = Resources:LoadLibrary("Enumeration")
+local PseudoInstance = Resources:LoadLibrary("PseudoInstance")
+local SelectionController = Resources:LoadLibrary("SelectionController")
+
+local CHECKED_IMAGE = "rbxassetid://2012883990"
+local UNCHECKED_IMAGE = "rbxassetid://2012883770"
+local DEFAULT_SIZE = UDim2.new(0, 24, 0, 24)
+
+local RadioButton = Instance.new("ImageButton")
+RadioButton.BackgroundTransparency = 1
+RadioButton.Size = DEFAULT_SIZE
+RadioButton.Image = UNCHECKED_IMAGE
+RadioButton.ImageColor3 = Color.Black
+RadioButton.ImageTransparency = 0.46
+
+local CLICK_RIPPLE_TRANSPARENCY = 0.77
+local HOVER_RIPPLE_TRANSPARENCY = 0.93
+local ANIMATION_TIME = 0.1 -- 0.125
+
+local Circle = Instance.new("ImageLabel")
+Circle.AnchorPoint = Vector2.new(0.5, 0.5)
+Circle.BackgroundTransparency = 1
+Circle.ImageTransparency = 1
+Circle.Position = UDim2.new(0.5, 0, 0.5, 0)
+Circle.Size = UDim2.new(1, 0, 1, 0)
+Circle.Image = "rbxassetid://517259585"
+Circle.Name = "InnerCircle"
+Circle.Parent = RadioButton
+
+local RippleCheckedSize = UDim2.new(10 / 24, 0, 10 / 24, 0)
+local RippleUncheckedSize = UDim2.new(20 / 24, 0, 20 / 24, 0)
+
+spawn(function()
+	ContentProvider:PreloadAsync{CHECKED_IMAGE, UNCHECKED_IMAGE}
+end)
+
+local Deceleration = Enumeration.EasingFunction.Deceleration.Value
+
+return PseudoInstance:Register("Radio", {
+	WrappedProperties = {
+		Button = {"AnchorPoint", "Name", "Parent", "Size", "Position", "LayoutOrder", "NextSelectionDown", "NextSelectionLeft", "NextSelectionRight", "NextSelectionUp"};
+	};
+
+	Internals = {
+		"InnerCircle";
+
+		RippleCheckedFinished = function(self, TweenStatus)
+			if TweenStatus == Enum.TweenStatus.Completed then
+				self.Button.Image = CHECKED_IMAGE
+				self.InnerCircle.Visible = false
+			end
+		end;
+
+		SetColorAndTransparency = function(self, Color3, Transparency)
+			local Opacity = (1 - Transparency)
+
+			self.HoverRippler.RippleColor3 = Color3
+			self.ClickRippler.RippleColor3 = Color3
+
+			self.HoverRippler.RippleTransparency = Opacity * HOVER_RIPPLE_TRANSPARENCY + Transparency
+			self.ClickRippler.RippleTransparency = Opacity * CLICK_RIPPLE_TRANSPARENCY + Transparency
+
+			self.Button.ImageTransparency = Transparency
+			self.Button.ImageColor3 = Color3
+		end;
+	};
+
+	Properties = {
+		Checked = Typer.AssignSignature(2, Typer.Boolean, function(self, Checked)
+			if Checked then
+				self:SetColorAndTransparency(self.PrimaryColor3, 0)
+				self.Button.Image = CHECKED_IMAGE
+			else
+				local MyTheme = self.Themes[self.Theme.Value]
+
+				self:SetColorAndTransparency(MyTheme.ImageColor3, MyTheme.ImageTransparency)
+				self.Button.Image = UNCHECKED_IMAGE
+			end
+
+			self:rawset("Checked", Checked)
+			self.OnChecked:Fire(Checked)
+		end);
+
+		ZIndex = Typer.AssignSignature(2, Typer.Number, function(self, ZIndex)
+			self.Button.ZIndex = ZIndex
+			self.InnerCircle.ZIndex = ZIndex
+
+			self:rawset("ZIndex", ZIndex)
+		end);
+	};
+
+	Methods = {
+		SetChecked = Typer.AssignSignature(2, Typer.OptionalBoolean, function(self, Checked)
+			if Checked == nil then Checked = true end
+			local Changed = self.Checked == Checked == false
+
+			if Changed then
+				local Button = self.Button
+				local InnerCircle = self.InnerCircle
+				InnerCircle.ImageColor3 = self.PrimaryColor3
+				InnerCircle.Visible = true
+
+				if Checked then
+					self:SetColorAndTransparency(self.PrimaryColor3, 0)
+
+					Tween(InnerCircle, "Size", RippleCheckedSize, Deceleration, ANIMATION_TIME, true)
+					Tween(InnerCircle, "ImageTransparency", 0, Deceleration, ANIMATION_TIME * 0.8, true, self.RippleCheckedFinished, self)
+				else
+					local MyTheme = self.Themes[self.Theme.Value]
+					self:SetColorAndTransparency(MyTheme.ImageColor3, MyTheme.ImageTransparency)
+
+					Button.Image = UNCHECKED_IMAGE
+					Tween(InnerCircle, "Size", RippleUncheckedSize, Deceleration, ANIMATION_TIME, true)
+					Tween(InnerCircle, "ImageTransparency", 1, Deceleration, ANIMATION_TIME * 2, true)
+				end
+			end
+
+			self:rawset("Checked", Checked)
+			self.OnChecked:Fire(Checked)
+		end);
+	};
+
+	Init = function(self)
+		self.Button = RadioButton:Clone()
+		self.InnerCircle = self.Button.InnerCircle
+		self.Janitor:Add(self.Button, "Destroy")
+		self.Janitor:Add(self.InnerCircle, "Destroy")
+		self:superinit()
+	end;
+}, SelectionController)
+]]></ProtectedString>
+						<BinaryString name="Tags"></BinaryString>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="RBX32E8A743FED84C4EAB5668894A4DBC49">
+					<Properties>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<Content name="LinkedSource"><null></null></Content>
+						<string name="Name">SelectionController</string>
+						<string name="ScriptGuid">{0325460B-B964-4D44-9368-EA25A039E93B}</string>
+						<ProtectedString name="Source"><![CDATA[-- SelectionController Class from which Checkbox and Radio inherit
+-- @documentation https://rostrap.github.io/Libraries/RoStrapUI/SelectionController/
+-- @source https://raw.githubusercontent.com/RoStrap/RoStrapUI/master/SelectionController.lua
+-- @rostrap SelectionController
+-- @author Validark
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Resources = require(ReplicatedStorage:WaitForChild("Resources"))
+
+local Color = Resources:LoadLibrary("Color")
+local Debug = Resources:LoadLibrary("Debug")
+local Typer = Resources:LoadLibrary("Typer")
+local Enumeration = Resources:LoadLibrary("Enumeration")
+local PseudoInstance = Resources:LoadLibrary("PseudoInstance")
+
+local Rippler = Resources:LoadLibrary("Rippler")
+
+Enumeration.MaterialTheme = {"Light", "Dark"}
+
+local Touch = Enum.UserInputType.Touch
+local MouseButton1 = Enum.UserInputType.MouseButton1
+local MouseMovement = Enum.UserInputType.MouseMovement
+
+local DEFAULT_COLOR3 = Color.Teal[500]
+
+return PseudoInstance:Register("SelectionController", {
+	Internals = {
+		"Button", "Template", "ClickRippler", "HoverRippler", "Indeterminate";
+
+		Themes = {
+			[Enumeration.MaterialTheme.Light.Value] = {
+				ImageColor3 = Color.Black;
+				ImageTransparency = 0.46;
+				DisabledTransparency = 0.74;
+			};
+
+			[Enumeration.MaterialTheme.Dark.Value] = {
+				ImageColor3 = Color.White;
+				ImageTransparency = 0.3;
+				DisabledTransparency = 0.7;
+			};
+		};
+	};
+
+	Events = {"OnChecked"};
+
+	Properties = {
+		Checked = Typer.Boolean;
+		Disabled = Typer.Boolean;
+
+		PrimaryColor3 = Typer.AssignSignature(2, Typer.Color3, function(self, Value)
+			if typeof(Value) ~= "Color3" then Debug.Error("PrimaryColor3 must be a Color3 value") end
+
+			if (self.Checked or self.Indeterminate) and self.PrimaryColor3 ~= Value then
+				self:SetColorAndTransparency(Value, 0)
+			end
+
+			self:rawset("PrimaryColor3", Value)
+		end);
+
+		Theme = Typer.AssignSignature(2, Typer.EnumerationOfTypeMaterialTheme, function(self, Theme)
+			if not self.Checked then
+				local Data = self.Themes[Theme.Value]
+				self:SetColorAndTransparency(Data.ImageColor3, Data.ImageTransparency)
+			end
+
+			self:rawset("Theme", Theme)
+		end);
+	};
+
+	Methods = {
+		SetChecked = 0;
+	};
+
+	Init = function(self)
+		local Button = self.Button
+
+		local ClickRippler = PseudoInstance.new("Rippler", Button)
+		ClickRippler.RippleExpandDuration = 0.45
+		ClickRippler.Style = Enumeration.RipplerStyle.Icon
+
+		local HoverRippler = PseudoInstance.new("Rippler", Button)
+		HoverRippler.RippleExpandDuration = 0.1
+		HoverRippler.RippleFadeDuration = 0.1
+		HoverRippler.Style = Enumeration.RipplerStyle.Icon
+
+		self.Janitor:Add(ClickRippler, "Destroy")
+		self.Janitor:Add(HoverRippler, "Destroy")
+
+		local CheckboxIsDown
+
+		self.Janitor:Add(Button.InputBegan:Connect(function(InputObject)
+			if InputObject.UserInputType == MouseButton1 or InputObject.UserInputType == Touch then
+				CheckboxIsDown = true
+				ClickRippler:Down()
+			elseif InputObject.UserInputType == MouseMovement then
+				HoverRippler:Down()
+			end
+		end), "Disconnect")
+
+		self.Janitor:Add(Button.InputEnded:Connect(function(InputObject)
+			ClickRippler:Up()
+			local UserInputType = InputObject.UserInputType
+			if CheckboxIsDown and UserInputType == MouseButton1 or UserInputType == Touch then
+				self:SetChecked()
+			elseif UserInputType == MouseMovement then
+				CheckboxIsDown = false
+				HoverRippler:Up()
+			end
+		end), "Disconnect")
+
+		self.Button = Button
+		self.ClickRippler = ClickRippler
+		self.HoverRippler = HoverRippler
+
+		self.Disabled = false
+		self.Theme = 0
+		self.PrimaryColor3 = DEFAULT_COLOR3
+		self.Checked = false
+		self:superinit()
+	end;
+})
+]]></ProtectedString>
+						<BinaryString name="Tags"></BinaryString>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="RBXEB083F2E83CD489D81C502281BFE5A04">
+					<Properties>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<Content name="LinkedSource"><null></null></Content>
+						<string name="Name">Snackbar</string>
+						<string name="ScriptGuid">{8D0CBCBC-C4F4-49B3-8F58-3A5D7AD970F9}</string>
+						<ProtectedString name="Source"><![CDATA[-- Simple Snackbar Generator
+-- @readme https://github.com/RoStrap/UI/blob/master/README.md
+-- @documentation https://rostrap.github.io/Libraries/RoStrapUI/Snackbar/
+-- @source https://raw.githubusercontent.com/RoStrap/RoStrapUI/master/Snackbar.lua
+-- @rostrap Snackbar
+-- @author Validark
+
+-- Snackbar.new(string Text, ScreenGui Screen)
+--	Generates a SnackbarFrame with message Text
+--	Expect more parameters in the future
+-- @spec https://material.io/guidelines/components/snackbars-toasts.html
+
+local HEIGHT = 48
+local ENTER_TIME = 0.275
+local DISPLAY_TIME = 2
+local SMALLEST_WIDTH = 294
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Resources = require(ReplicatedStorage:WaitForChild("Resources"))
+
+local Tween = Resources:LoadLibrary("Tween")
+local Janitor = Resources:LoadLibrary("Janitor")
+
+local TweenCompleted = Enum.TweenStatus.Completed
+
+HEIGHT = HEIGHT + 6
+local OpenSnackbar, OpenTween
+local ExitPosition = UDim2.new(0.5, 0, 1, 0)
+local EnterPosition = UDim2.new(0.5, 0, 1, -HEIGHT)
+
+local DefaultSnackbar = Instance.new("ImageLabel")
+DefaultSnackbar.AnchorPoint = Vector2.new(0.5, 0)
+DefaultSnackbar.BackgroundTransparency = 1
+DefaultSnackbar.Image = "rbxasset://textures/ui/btn_newWhite.png"
+DefaultSnackbar.ImageColor3 = Color3.fromRGB(50, 50, 50)
+DefaultSnackbar.Position = UDim2.new(0.5, 0, 1, 0)
+DefaultSnackbar.ScaleType = Enum.ScaleType.Slice
+DefaultSnackbar.Size = UDim2.new(0, 288 + 6, 0, HEIGHT)
+DefaultSnackbar.SliceCenter = Rect.new(7, 7, 13, 13)
+DefaultSnackbar.ZIndex = 4
+
+local SnackbarText = Instance.new("TextLabel", DefaultSnackbar)
+SnackbarText.AnchorPoint = Vector2.new(0, 0.5)
+SnackbarText.Font = Enum.Font.SourceSans
+SnackbarText.Name = "Label"
+SnackbarText.Position = UDim2.new(0, 27, 0.5, 0)
+SnackbarText.TextSize = 20
+SnackbarText.TextColor3 = Color3.fromRGB(255, 255, 255)
+SnackbarText.TextXAlignment = Enum.TextXAlignment.Left
+SnackbarText.ZIndex = 5
+
+local Snackbar = {}
+
+function Snackbar.new(Text, Screen)
+	-- @param string Text the message you want to appear
+	-- @param ScreenGui Screen the Parent of the Snackbar
+
+	if OpenSnackbar then
+		local PreviousSnackbar = OpenSnackbar
+		local PreviousLabel = PreviousSnackbar:FindFirstChild("Label")
+
+		if PreviousLabel then
+			if PreviousLabel.Text == Text then
+				return
+			end
+			PreviousLabel.ZIndex = 3
+		end
+
+		OpenTween:Stop()
+		PreviousSnackbar.ZIndex = 2
+
+		Tween(PreviousSnackbar, "Position", ExitPosition, "Acceleration", ENTER_TIME * 0.7, false, function(Completed)
+			if Completed == TweenCompleted then
+				PreviousSnackbar:Destroy()
+				if OpenSnackbar == PreviousSnackbar then
+					OpenSnackbar = nil
+				end
+			end
+		end)
+	end
+
+	local SnackbarJanitor = Janitor.new()
+	local SnackbarFrame = DefaultSnackbar:Clone()
+	OpenSnackbar = SnackbarFrame
+	local Label = SnackbarFrame:FindFirstChild("Label")
+
+	if Label then
+		Label.Text = Text
+		SnackbarJanitor:LinkToInstance(SnackbarFrame)
+		SnackbarJanitor:Add(SnackbarFrame.Label:GetPropertyChangedSignal("TextBounds"):Connect(function()
+			SnackbarFrame.Size = UDim2.new(0, Label.TextBounds.X + HEIGHT > SMALLEST_WIDTH and Label.TextBounds.X + HEIGHT or SMALLEST_WIDTH, 0, HEIGHT)
+		end), "Disconnect")
+	end
+
+	SnackbarFrame.Parent = Screen
+
+	OpenTween = Tween(SnackbarFrame, "Position", EnterPosition, "Deceleration", ENTER_TIME, false, function(Completed)
+		if Completed == TweenCompleted and wait(DISPLAY_TIME - ENTER_TIME) then
+			Tween(SnackbarFrame, "Position", ExitPosition, "Acceleration", ENTER_TIME, false, function(Completed)
+				if Completed == TweenCompleted then
+					SnackbarFrame:Destroy()
+					if OpenSnackbar == SnackbarFrame then
+						OpenSnackbar = nil
+					end
+				end
+			end)
+		end
+	end)
+
+	return setmetatable({}, Snackbar)
+end
+
+return Snackbar
+]]></ProtectedString>
+						<BinaryString name="Tags"></BinaryString>
+					</Properties>
+				</Item>
+			</Item>
+			<Item class="Folder" referent="RBX16EFDE23039742F7821C36FA62CF8EBD">
+				<Properties>
+					<BinaryString name="AttributesSerialize"></BinaryString>
+					<string name="Name">Interpolation</string>
+					<BinaryString name="Tags"></BinaryString>
+				</Properties>
+				<Item class="ModuleScript" referent="RBX977EE2419DA9449988A57AC859A88141">
+					<Properties>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<Content name="LinkedSource"><null></null></Content>
+						<string name="Name">Tween</string>
+						<string name="ScriptGuid">{4A40ABAE-6A59-4D4B-A777-4C8089282C57}</string>
+						<ProtectedString name="Source"><![CDATA[-- Light-weight, Bezier-friendly Property Tweening
+-- @documentation https://rostrap.github.io/Libraries/Interpolation/Tween/
+-- @source https://raw.githubusercontent.com/RoStrap/Interpolation/master/Tween.lua
+-- @rostrap Tween
+-- @author Validark
+
+local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
+local Lerps = Resources:LoadLibrary("Lerps")
+local Table = Resources:LoadLibrary("Table")
+local Typer = Resources:LoadLibrary("Typer")
+local Enumeration = Resources:LoadLibrary("Enumeration")
+local EasingFunctions = Resources:LoadLibrary("EasingFunctions")
+
+local Heartbeat = game:GetService("RunService").Heartbeat
+
+local Completed = Enum.TweenStatus.Completed
+local Canceled = Enum.TweenStatus.Canceled
+local Linear = EasingFunctions[Enumeration.EasingFunction.Linear.Value]
+
+local Tween = {
+	__index = {
+		Running = false;
+		Duration = 1;
+		ElapsedTime = 0;
+		EasingFunction = EasingFunctions[Enumeration.EasingFunction.Standard.Value];
+		LerpFunction = function(StartValue, EndValue, Alpha) return EndValue end;
+	}
+}
+
+local OpenTweens = {} -- Will prevent objects from getting garbage collected until Tween finishes
+
+Tween.new = Typer.AssignSignature(Typer.OptionalNumber, Typer.OptionalFunctionOrEnumerationOfTypeEasingFunction, Typer.FunctionOrTableOrUserdata, Typer.Any, function(Duration, EasingFunction, Callback, Arg)
+	Duration = Duration or 1
+	EasingFunction = type(EasingFunction) == "userdata" and EasingFunctions[EasingFunction.Value] or EasingFunction or Linear
+
+	local self = setmetatable({
+		Duration = Duration;
+		Callback = Callback;
+		EasingFunction = EasingFunction;
+		Arg = Arg;
+	}, Tween)
+
+	function self.Interpolator(Step)
+		local ElapsedTime = self.ElapsedTime + Step
+		self.ElapsedTime = ElapsedTime
+
+		if Duration > ElapsedTime then
+			local x = EasingFunction(ElapsedTime, 0, 1, Duration)
+			if Arg ~= nil then
+				Callback(Arg, x)
+			else
+				Callback(x)
+			end
+		else
+			if Arg ~= nil then
+				Callback(Arg, 1)
+			else
+				Callback(1)
+			end
+			self:Stop()
+		end
+	end
+
+	return self:Resume()
+end)
+
+function Tween.__index:Stop(Finished)
+	if self.Running then
+		self.Connection:Disconnect()
+		self.Running = false
+		local ObjectTable = OpenTweens[self.Object]
+		if ObjectTable then
+			ObjectTable[self.Property] = nil -- This is for override checks
+		end
+	end
+	local Callback = self.FinishedCallback
+	if Callback == true then
+		if Finished then
+			self.Object:Destroy()
+		end
+	elseif Callback then
+		if self.CallbackArg ~= nil then
+			Callback(self.CallbackArg, Finished and Completed or Canceled)
+		else
+			Callback(Finished and Completed or Canceled)
+		end
+	end
+	return self
+end
+
+function Tween.__index:Resume()
+	if self.Duration == 0 then
+		self.Object[self.Property] = self.EndValue
+	else
+		if not self.Running then
+			self.Connection = Heartbeat:Connect(self.Interpolator)
+			self.Running = true
+			local ObjectTable = OpenTweens[self.Object]
+			if ObjectTable then
+				ObjectTable[self.Property] = self -- This is for override checks
+			end
+		end
+	end
+	return self
+end
+
+function Tween.__index:Restart()
+	self.ElapsedTime = 0
+	return self:Resume()
+end
+
+function Tween.__index:Wait()
+	repeat until not self.Running or not Heartbeat:Wait()
+	return self
+end
+
+return Table.Lock(Tween, Typer.AssignSignature(5, Typer.OptionalFunctionOrEnumerationOfTypeEasingFunction, Typer.OptionalNumber, Typer.OptionalBoolean, Typer.OptionalFunctionOrTableOrUserdataOrTrue, Typer.Any, function(_, Object, Property, EndValue, EasingFunction, Duration, Override, Callback, CallbackArg)
+	Duration = Duration or 1
+	local LerpFunction = Lerps[typeof(EndValue)]
+	local StartValue = Object[Property]
+	EasingFunction = type(EasingFunction) == "userdata" and EasingFunctions[EasingFunction.Value] or EasingFunction or Linear
+
+	local self = setmetatable({
+		Duration = Duration;
+		StartValue = StartValue;
+		EndValue = EndValue;
+		LerpFunction = LerpFunction;
+		Object = Object;
+		FinishedCallback = Callback;
+		Property = Property;
+		EasingFunction = EasingFunction;
+		CallbackArg = CallbackArg;
+	}, Tween)
+
+	function self.Interpolator(Step)
+		local ElapsedTime = self.ElapsedTime + Step
+		self.ElapsedTime = ElapsedTime
+
+		if Duration > ElapsedTime then
+			Object[Property] = LerpFunction(StartValue, EndValue, EasingFunction(ElapsedTime, 0, 1, Duration))
+		else
+			self:Stop(true)
+			Object[Property] = EndValue
+		end
+	end
+
+	local ObjectTable = OpenTweens[Object] -- Handle Overriding Interpolations
+
+	if ObjectTable then
+		local OpenTween = ObjectTable[Property]
+		if OpenTween then
+			if Override then
+				OpenTween:Stop()
+			else
+				return self:Stop()
+			end
+		end
+	else
+		ObjectTable = {}
+		OpenTweens[Object] = ObjectTable
+	end
+
+	ObjectTable[Property] = self
+
+	return self:Resume()
+end))
+]]></ProtectedString>
+						<BinaryString name="Tags"></BinaryString>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="RBXE9F73E475D8D46D7B1B727E5BE871B94">
+					<Properties>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<Content name="LinkedSource"><null></null></Content>
+						<string name="Name">Lerps</string>
+						<string name="ScriptGuid">{7CDEA9CD-563D-4EE9-BEA7-220C77C7B55A}</string>
+						<ProtectedString name="Source"><![CDATA[-- Lerp functions for most data types, featuring CIELUV Color Lerping
+-- @documentation https://rostrap.github.io/Libraries/Interpolation/Lerps/
+-- @source https://raw.githubusercontent.com/RoStrap/Interpolation/master/Lerps.lua
+-- @rostrap Lerps
+-- @author Validark
+-- @author Fraktality
+-- @author Sharksie (NumberSequence Lerp)
+
+local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
+local Table = Resources:LoadLibrary("Table")
+
+local function Lerp(Start, Finish, Alpha)
+	return Start + Alpha * (Finish - Start)
+end
+
+local Color3Lerp do
+	-- Combines two colors in CIELUV space.
+	-- Color3 LerpCIELUV(Color3 fromColor, Color3 toColor, float t)
+	-- @author Fraktality
+
+	-- https://www.w3.org/Graphics/Color/srgb
+
+	local Black = Color3.fromRGB(0, 0, 0)
+
+	function Color3Lerp(c0, c1, t)
+		local u0, v0, u1, v1
+
+		-- Convert from linear RGB to scaled CIELUV (RgbToLuv13)
+		local r, g, b = c0.r, c0.g, c0.b
+		-- Apply inverse gamma correction
+		r = r < 0.0404482362771076 and r/12.92 or 0.87941546140213*(r + 0.055)^2.4
+		g = g < 0.0404482362771076 and g/12.92 or 0.87941546140213*(g + 0.055)^2.4
+		b = b < 0.0404482362771076 and b/12.92 or 0.87941546140213*(b + 0.055)^2.4
+		-- sRGB->XYZ->CIELUV
+		local y = 0.2125862307855956*r + 0.71517030370341085*g + 0.0722004986433362*b
+		local z = 3.6590806972265883*r + 11.4426895800574232*g + 4.1149915024264843*b
+		local l0 = y > 0.008856451679035631 and 116*y^(1/3) - 16 or 903.296296296296*y
+		if z > 1e-15 then
+			u0, v0 = l0*(0.9257063972951867*r - 0.8333736323779866*g - 0.09209820666085898*b)/z, l0*(9*y/z - 0.46832)
+		else
+			u0, v0 = -0.19783*l0, -0.46832*l0
+		end
+
+		-- Convert from linear RGB to scaled CIELUV (RgbToLuv13)
+		r, g, b = c1.r, c1.g, c1.b
+		-- Apply inverse gamma correction
+		r = r < 0.0404482362771076 and r/12.92 or 0.87941546140213*(r + 0.055)^2.4
+		g = g < 0.0404482362771076 and g/12.92 or 0.87941546140213*(g + 0.055)^2.4
+		b = b < 0.0404482362771076 and b/12.92 or 0.87941546140213*(b + 0.055)^2.4
+		-- sRGB->XYZ->CIELUV
+		y = 0.2125862307855956*r + 0.71517030370341085*g + 0.0722004986433362*b
+		z = 3.6590806972265883*r + 11.4426895800574232*g + 4.1149915024264843*b
+		local l1 = y > 0.008856451679035631 and 116*y^(1/3) - 16 or 903.296296296296*y
+		if z > 1e-15 then
+			u1, v1 = l1*(0.9257063972951867*r - 0.8333736323779866*g - 0.09209820666085898*b)/z, l1*(9*y/z - 0.46832)
+		else
+			u1, v1 = -0.19783*l1, -0.46832*l1
+		end
+
+		-- The inputs aren't needed anymore, so don't drag out their lifetimes
+		-- c0, c1 = nil, nil
+
+		-- return function(t)
+		-- Interpolate
+		local l = (1 - t)*l0 + t*l1
+		if l < 0.0197955 then
+			return Black
+		end
+		local u = ((1 - t)*u0 + t*u1)/l + 0.19783
+		local v = ((1 - t)*v0 + t*v1)/l + 0.46832
+
+		-- CIELUV->XYZ
+		y = (l + 16)/116
+		y = y > 0.206896551724137931 and y*y*y or 0.12841854934601665*y - 0.01771290335807126
+		local x = y*u/v
+		z = y*((3 - 0.75*u)/v - 5)
+
+		-- XYZ->linear sRGB
+		r =  7.2914074*x - 1.5372080*y - 0.4986286*z
+		g = -2.1800940*x + 1.8757561*y + 0.0415175*z
+		b =  0.1253477*x - 0.2040211*y + 1.0569959*z
+
+		-- Adjust for the lowest out-of-bounds component
+		if r < 0 and r < g and r < b then
+			r, g, b = 0, g - r, b - r
+		elseif g < 0 and g < b then
+			r, g, b = r - g, 0, b - g
+		elseif b < 0 then
+			r, g, b = r - b, g - b, 0
+		end
+
+		-- Apply gamma correction
+		r = r < 3.1306684425e-3 and 12.92*r or 1.055*r^(1/2.4) - 0.055
+		g = g < 3.1306684425e-3 and 12.92*g or 1.055*g^(1/2.4) - 0.055
+		b = b < 3.1306684425e-3 and 12.92*b or 1.055*b^(1/2.4) - 0.055
+
+		return Color3.new(
+			-- Clamp the result
+			r > 1 and 1 or r < 0 and 0 or r,
+			g > 1 and 1 or g < 0 and 0 or g,
+			b > 1 and 1 or b < 0 and 0 or b
+		)
+		-- end
+	end
+end
+
+local function sortByTime(a, b)
+	return a.Time < b.Time
+end
+
+return Table.Lock {
+	number = Lerp;
+	Color3 = Color3Lerp;
+	UDim2 = UDim2.new().Lerp;
+	CFrame = CFrame.new().Lerp;
+	Vector2 = Vector2.new().Lerp;
+	Vector3 = Vector3.new().Lerp;
+
+	string = function(start, finish, alpha)
+		-- Very simple, doesn't yet take into account previous string
+		local count = #finish
+		local a = 1 + count*alpha
+		return finish:sub(1, a < count and a or count)
+	end;
+
+	UDim = function(start, finish, alpha)
+		return UDim.new(Lerp(start.Scale, finish.Scale, alpha), Lerp(start.Offset, finish.Offset, alpha))
+	end;
+
+	Rect = function(start, finish, alpha)
+		return Rect.new(
+			Lerp(start.Min.X, finish.Min.X, alpha), Lerp(start.Min.Y, finish.Min.Y, alpha),
+			Lerp(start.Max.X, finish.Max.X, alpha), Lerp(start.Max.Y, finish.Max.Y, alpha)
+		)
+	end;
+
+	PhysicalProperties = function(start, finish, alpha)
+		return PhysicalProperties.new(
+			Lerp(start.Density, finish.Density, alpha),
+			Lerp(start.Friction, finish.Friction, alpha),
+			Lerp(start.Elasticity, finish.Elasticity, alpha),
+			Lerp(start.FrictionWeight, finish.FrictionWeight, alpha),
+			Lerp(start.ElasticityWeight, finish.ElasticityWeight, alpha)
+		)
+	end;
+
+	NumberRange = function(start, finish, alpha)
+		return NumberRange.new(Lerp(start.Min, finish.Min, alpha), Lerp(start.Max, finish.Max, alpha))
+	end;
+
+	ColorSequence = function(start, finish, alpha)
+		return ColorSequence.new(Color3Lerp(start[1], finish[1], alpha), Color3Lerp(start[2], finish[2], alpha))
+	end;
+
+	Region3 = function(start, finish, alpha) -- @author Sharksie
+		local imin = Lerp(start.CFrame * (-start.Size*0.5), finish.CFrame * (-finish.Size*0.5), alpha)
+		local imax = Lerp(start.CFrame * ( start.Size*0.5), finish.CFrame * ( finish.Size*0.5), alpha)
+
+		local iminx = imin.x
+		local imaxx = imax.x
+		local iminy = imin.y
+		local imaxy = imax.y
+		local iminz = imin.z
+		local imaxz = imax.z
+
+		return Region3.new(
+			Vector3.new(iminx < imaxx and iminx or imaxx, iminy < imaxy and iminy or imaxy, iminz < imaxz and iminz or imaxz),
+			Vector3.new(iminx > imaxx and iminx or imaxx, iminy > imaxy and iminy or imaxy, iminz > imaxz and iminz or imaxz)
+		)
+	end;
+
+	NumberSequence = function(start, finish, alpha)
+		-- @author Sharksie
+
+		-- For each point on each line, find the values of the other sequence at that point in time through interpolation
+		-- 	then interpolate between the known value and the learned value
+		-- 	then use that value to create a new keypoint at the time
+		-- 	then build a new sequence using all the keypoints generated
+
+		local keypoints = {}
+		local addedTimes = {}
+
+		for i, ap in next, start.Keypoints do
+			local closestAbove, closestBelow
+
+			for i, bp in next, finish.Keypoints do
+				if bp.Time == ap.Time then
+					closestAbove, closestBelow = bp, bp
+					break
+				elseif bp.Time < ap.Time and (closestBelow == nil or bp.Time > closestBelow.Time) then
+					closestBelow = bp
+				elseif bp.Time > ap.Time and (closestAbove == nil or bp.Time < closestAbove.Time) then
+					closestAbove = bp
+				end
+			end
+
+			local bValue, bEnvelope
+			if closestAbove == closestBelow then
+				bValue, bEnvelope = closestAbove.Value, closestAbove.Envelope
+			else
+				local p = (ap.Time - closestBelow.Time)/(closestAbove.Time - closestBelow.Time)
+				bValue = (closestAbove.Value - closestBelow.Value)*p + closestBelow.Value
+				bEnvelope = (closestAbove.Envelope - closestBelow.Envelope)*p + closestBelow.Envelope
+			end
+			local interValue = (bValue - ap.Value)*alpha + ap.Value
+			local interEnvelope = (bEnvelope - ap.Envelope)*alpha + ap.Envelope
+			local interp = NumberSequenceKeypoint.new(ap.Time, interValue, interEnvelope)
+
+			table.insert(keypoints, interp)
+
+			addedTimes[ap.Time] = true
+		end
+
+		for i, bp in next, finish.Keypoints do
+			if not addedTimes[bp.Time] then
+				local closestAbove, closestBelow
+
+				for i, ap in next, start.Keypoints do
+					if ap.Time == bp.Time then
+						closestAbove, closestBelow = ap, ap
+						break
+					elseif ap.Time < bp.Time and (closestBelow == nil or ap.Time > closestBelow.Time) then
+						closestBelow = ap
+					elseif ap.Time > bp.Time and (closestAbove == nil or ap.Time < closestAbove.Time) then
+						closestAbove = ap
+					end
+				end
+
+				local aValue, aEnvelope
+				if closestAbove == closestBelow then
+					aValue, aEnvelope = closestAbove.Value, closestAbove.Envelope
+				else
+					local p = (bp.Time - closestBelow.Time)/(closestAbove.Time - closestBelow.Time)
+					aValue = (closestAbove.Value - closestBelow.Value)*p + closestBelow.Value
+					aEnvelope = (closestAbove.Envelope - closestBelow.Envelope)*p + closestBelow.Envelope
+				end
+				local interValue = (bp.Value - aValue)*alpha + aValue
+				local interEnvelope = (bp.Envelope - aEnvelope)*alpha + aEnvelope
+				local interp = NumberSequenceKeypoint.new(bp.Time, interValue, interEnvelope)
+
+				table.insert(keypoints, interp)
+			end
+		end
+
+		table.sort(keypoints, sortByTime)
+
+		return NumberSequence.new(keypoints)
+	end;
+}
+]]></ProtectedString>
+						<BinaryString name="Tags"></BinaryString>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="RBX2729E68CCFDD4989A6CD15884450CF14">
+					<Properties>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<Content name="LinkedSource"><null></null></Content>
+						<string name="Name">EasingFunctions</string>
+						<string name="ScriptGuid">{E2BBDD0B-9A7F-4644-A4DC-3C1FA7044086}</string>
+						<ProtectedString name="Source"><![CDATA[-- Prescribed Material design Beziers and optimized Robert Penner functions
+-- @documentation https://rostrap.github.io/Libraries/Interpolation/EasingFunctions/
+-- @source https://raw.githubusercontent.com/RoStrap/Interpolation/master/EasingFunctions.lua
+-- @rostrap EasingFunctions
+-- @author Robert Penner
+
+local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
+local Table = Resources:LoadLibrary("Table")
+local Bezier = Resources:LoadLibrary("Bezier")
+local Enumeration = Resources:LoadLibrary("Enumeration")
+
+-- @specs https://material.io/guidelines/motion/duration-easing.html#duration-easing-natural-easing-curves
+local Sharp = Bezier.new(0.4, 0, 0.6, 1)
+local Standard = Bezier.new(0.4, 0, 0.2, 1)
+local Acceleration = Bezier.new(0.4, 0, 1, 1)
+local Deceleration = Bezier.new(0, 0, 0.2, 1)
+
+Enumeration.EasingFunction = {
+	"Standard";
+	"Deceleration";
+	"Acceleration";
+	"Sharp";
+
+	"Linear";
+
+	"InSine";
+	"OutSine";
+	"InOutSine";
+	"OutInSine";
+
+	"InBack";
+	"OutBack";
+	"InOutBack";
+	"OutInBack";
+
+	"InQuad";
+	"OutQuad";
+	"InOutQuad";
+	"OutInQuad";
+
+	"InQuart";
+	"OutQuart";
+	"InOutQuart";
+	"OutInQuart";
+
+	"InQuint";
+	"OutQuint";
+	"InOutQuint";
+	"OutInQuint";
+
+	"InBounce";
+	"OutBounce";
+	"InOutBounce";
+	"OutInBounce";
+
+	"InElastic";
+	"OutElastic";
+	"InOutElastic";
+	"OutInElastic";
+
+	"InCirc";
+	"OutCirc";
+	"InOutCirc";
+	"OutInCirc";
+
+	"InCubic";
+	"OutCubic";
+	"InOutCubic";
+	"OutInCubic";
+
+	"InExpo";
+	"OutExpo";
+	"InOutExpo";
+	"OutInExpo";
+
+	"Smooth";
+	"Smoother";
+	"RevBack";
+	"RidiculousWiggle";
+	"Spring";
+	"SoftSpring";
+}
+
+--[[
+	Disclaimer for Robert Penner's Easing Equations license:
+
+	TERMS OF USE - EASING EQUATIONS
+
+	Open source under the BSD License.
+
+	Copyright © 2001 Robert Penner
+	All rights reserved.
+
+	Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+	* Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+	* Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+	* Neither the name of the author nor the names of contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+	IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+	OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+]]
+
+-- For all easing functions:
+-- t = elapsed time
+-- b = beginning value
+-- c = change in value same as: ending - beginning
+-- d = duration (total time)
+
+-- Where applicable
+-- a = amplitude
+-- p = period
+
+local sin, cos, pi, abs, asin = math.sin, math.cos, math.pi, math.abs, math.asin
+local _2pi = 2 * pi
+local _halfpi = 0.5 * pi
+local SoftSpringpi = -3.2*pi
+local Springpi = 2*SoftSpringpi
+
+local function Linear(t, b, c, d)
+	return c * t / d + b
+end
+
+local function Smooth(t, b, c, d)
+	t = t / d
+	return c * t * t * (3 - 2*t) + b
+end
+
+local function Smoother(t, b, c, d)
+	t = t / d
+	return c*t*t*t * (t * (6*t - 15) + 10) + b
+end
+
+-- Arceusinator's Easing Functions
+local function RevBack(t, b, c, d)
+	t = 1 - t / d
+	return c*(1 - (sin(t*_halfpi) + (sin(t*pi) * (cos(t*pi) + 1)*0.5))) + b
+end
+
+local function RidiculousWiggle(t, b, c, d)
+	t = t / d
+	return c*sin(sin(t*pi)*_halfpi) + b
+end
+
+-- YellowTide's Easing Functions
+local function Spring(t, b, c, d)
+	t = t / d
+	return (1 + (-2.72^(-6.9*t) * cos(Springpi*t))) * c + b
+end
+
+local function SoftSpring(t, b, c, d)
+	t = t / d
+	return (1 + (-2.72^(-7.5*t) * cos(SoftSpringpi*t))) * c + b
+end
+-- End of YellowTide's functions
+
+local function InQuad(t, b, c, d)
+	t = t / d
+	return c * t * t + b
+end
+
+local function OutQuad(t, b, c, d)
+	t = t / d
+	return -c * t * (t - 2) + b
+end
+
+local function InOutQuad(t, b, c, d)
+	t = t / d * 2
+	return t < 1 and c * 0.5 * t * t + b or -c * 0.5 * ((t - 1) * (t - 3) - 1) + b
+end
+
+local function OutInQuad(t, b, c, d)
+	if t < d * 0.5 then
+		t = 2 * t / d
+		return -0.5 * c * t * (t - 2) + b
+	else
+		t, c = ((t * 2) - d) / d, 0.5 * c
+		return c * t * t + b + c
+	end
+end
+
+local function InCubic(t, b, c, d)
+	t = t / d
+	return c * t * t * t + b
+end
+
+local function OutCubic(t, b, c, d)
+	t = t / d - 1
+	return c * (t * t * t + 1) + b
+end
+
+local function InOutCubic(t, b, c, d)
+	t = t / d * 2
+	if t < 1 then
+		return c * 0.5 * t * t * t + b
+	else
+		t = t - 2
+		return c * 0.5 * (t * t * t + 2) + b
+	end
+end
+
+local function OutInCubic(t, b, c, d)
+	if t < d * 0.5 then
+		t = t * 2 / d - 1
+		return c * 0.5 * (t * t * t + 1) + b
+	else
+		t, c = ((t * 2) - d) / d, c * 0.5
+		return c * t * t * t + b + c
+	end
+end
+
+local function InQuart(t, b, c, d)
+	t = t / d
+	return c * t * t * t * t + b
+end
+
+local function OutQuart(t, b, c, d)
+	t = t / d - 1
+	return -c * (t * t * t * t - 1) + b
+end
+
+local function InOutQuart(t, b, c, d)
+	t = t / d * 2
+	if t < 1 then
+		return c * 0.5 * t * t * t * t + b
+	else
+		t = t - 2
+		return -c * 0.5 * (t * t * t * t - 2) + b
+	end
+end
+
+local function OutInQuart(t, b, c, d)
+	if t < d * 0.5 then
+		t, c = t * 2 / d - 1, c * 0.5
+		return -c * (t * t * t * t - 1) + b
+	else
+		t, c = ((t * 2) - d) / d, c * 0.5
+		return c * t * t * t * t + b + c
+	end
+end
+
+local function InQuint(t, b, c, d)
+	t = t / d
+	return c * t * t * t * t * t + b
+end
+
+local function OutQuint(t, b, c, d)
+	t = t / d - 1
+	return c * (t * t * t * t * t + 1) + b
+end
+
+local function InOutQuint(t, b, c, d)
+	t = t / d * 2
+	if t < 1 then
+		return c * 0.5 * t * t * t * t * t + b
+	else
+		t = t - 2
+		return c * 0.5 * (t * t * t * t * t + 2) + b
+	end
+end
+
+local function OutInQuint(t, b, c, d)
+	if t < d * 0.5 then
+		t = t * 2 / d - 1
+		return c * 0.5 * (t * t * t * t * t + 1) + b
+	else
+		t, c = ((t * 2) - d) / d, c * 0.5
+		return c * t * t * t * t * t + b + c
+	end
+end
+
+local function InSine(t, b, c, d)
+	return -c * cos(t / d * _halfpi) + c + b
+end
+
+local function OutSine(t, b, c, d)
+	return c * sin(t / d * _halfpi) + b
+end
+
+local function InOutSine(t, b, c, d)
+	return -c * 0.5 * (cos(pi * t / d) - 1) + b
+end
+
+local function OutInSine(t, b, c, d)
+	c = c * 0.5
+	return t < d * 0.5 and c * sin(t * 2 / d * _halfpi) + b or -c * cos(((t * 2) - d) / d * _halfpi) + 2 * c + b
+end
+
+local function InExpo(t, b, c, d)
+	return t == 0 and b or c * 2 ^ (10 * (t / d - 1)) + b - c * 0.001
+end
+
+local function OutExpo(t, b, c, d)
+	return t == d and b + c or c * 1.001 * (1 - 2 ^ (-10 * t / d)) + b
+end
+
+local function InOutExpo(t, b, c, d)
+	t = t / d * 2
+	return t == 0 and b or t == 2 and b + c or t < 1 and c * 0.5 * 2 ^ (10 * (t - 1)) + b - c * 0.0005 or c * 0.5 * 1.0005 * (2 - 2 ^ (-10 * (t - 1))) + b
+end
+
+local function OutInExpo(t, b, c, d)
+	c = c * 0.5
+	return t < d * 0.5 and (t * 2 == d and b + c or c * 1.001 * (1 - 2 ^ (-20 * t / d)) + b) or t * 2 - d == 0 and b + c or c * 2 ^ (10 * ((t * 2 - d) / d - 1)) + b + c - c * 0.001
+end
+
+local function InCirc(t, b, c, d)
+	t = t / d
+	return -c * ((1 - t * t) ^ 0.5 - 1) + b
+end
+
+local function OutCirc(t, b, c, d)
+	t = t / d - 1
+	return c * (1 - t * t) ^ 0.5 + b
+end
+
+local function InOutCirc(t, b, c, d)
+	t = t / d * 2
+	if t < 1 then
+		return -c * 0.5 * ((1 - t * t) ^ 0.5 - 1) + b
+	else
+		t = t - 2
+		return c * 0.5 * ((1 - t * t) ^ 0.5 + 1) + b
+	end
+end
+
+local function OutInCirc(t, b, c, d)
+	c = c * 0.5
+	if t < d * 0.5 then
+		t = t * 2 / d - 1
+		return c * (1 - t * t) ^ 0.5 + b
+	else
+		t = (t * 2 - d) / d
+		return -c * ((1 - t * t) ^ 0.5 - 1) + b + c
+	end
+end
+
+local function InElastic(t, b, c, d, a, p)
+	t = t / d - 1
+	p = p or d * 0.3
+	return t == -1 and b or t == 0 and b + c or (not a or a < abs(c)) and -(c * 2 ^ (10 * t) * sin((t * d - p * .25) * _2pi / p)) + b or -(a * 2 ^ (10 * t) * sin((t * d - p / _2pi * asin(c/a)) * _2pi / p)) + b
+end
+
+local function OutElastic(t, b, c, d, a, p)
+	t = t / d
+	p = p or d * 0.3
+	return t == 0 and b or t == 1 and b + c or (not a or a < abs(c)) and c * 2 ^ (-10 * t) * sin((t * d - p * .25) * _2pi / p) + c + b or a * 2 ^ (-10 * t) * sin((t * d - p / _2pi * asin(c / a)) * _2pi / p) + c + b
+end
+
+local function InOutElastic(t, b, c, d, a, p)
+	if t == 0 then
+		return b
+	end
+
+	t = t / d * 2 - 1
+
+	if t == 1 then
+		return b + c
+	end
+
+	p = p or d * .45
+	a = a or 0
+
+	local s
+
+	if not a or a < abs(c) then
+		a = c
+		s = p * .25
+	else
+		s = p / _2pi * asin(c / a)
+	end
+
+	if t < 1 then
+		return -0.5 * a * 2 ^ (10 * t) * sin((t * d - s) * _2pi / p) + b
+	else
+		return a * 2 ^ (-10 * t) * sin((t * d - s) * _2pi / p ) * 0.5 + c + b
+	end
+end
+
+local function OutInElastic(t, b, c, d, a, p)
+	if t < d * 0.5 then
+		return OutElastic(t * 2, b, c * 0.5, d, a, p)
+	else
+		return InElastic(t * 2 - d, b + c * 0.5, c * 0.5, d, a, p)
+	end
+end
+
+local function InBack(t, b, c, d, s)
+	s = s or 1.70158
+	t = t / d
+	return c * t * t * ((s + 1) * t - s) + b
+end
+
+local function OutBack(t, b, c, d, s)
+	s = s or 1.70158
+	t = t / d - 1
+	return c * (t * t * ((s + 1) * t + s) + 1) + b
+end
+
+local function InOutBack(t, b, c, d, s)
+	s = (s or 1.70158) * 1.525
+	t = t / d * 2
+	if t < 1 then
+		return c * 0.5 * (t * t * ((s + 1) * t - s)) + b
+	else
+		t = t - 2
+		return c * 0.5 * (t * t * ((s + 1) * t + s) + 2) + b
+	end
+end
+
+local function OutInBack(t, b, c, d, s)
+	c = c * 0.5
+	s = s or 1.70158
+	if t < d * 0.5 then
+		t = (t * 2) / d - 1
+		return c * (t * t * ((s + 1) * t + s) + 1) + b
+	else
+		t = ((t * 2) - d) / d
+		return c * t * t * ((s + 1) * t - s) + b + c
+	end
+end
+
+local function OutBounce(t, b, c, d)
+	t = t / d
+	if t < 1 / 2.75 then
+		return c * (7.5625 * t * t) + b
+	elseif t < 2 / 2.75 then
+		t = t - (1.5 / 2.75)
+		return c * (7.5625 * t * t + 0.75) + b
+	elseif t < 2.5 / 2.75 then
+		t = t - (2.25 / 2.75)
+		return c * (7.5625 * t * t + 0.9375) + b
+	else
+		t = t - (2.625 / 2.75)
+		return c * (7.5625 * t * t + 0.984375) + b
+	end
+end
+
+local function InBounce(t, b, c, d)
+	return c - OutBounce(d - t, 0, c, d) + b
+end
+
+local function InOutBounce(t, b, c, d)
+	if t < d * 0.5 then
+		return InBounce(t * 2, 0, c, d) * 0.5 + b
+	else
+		return OutBounce(t * 2 - d, 0, c, d) * 0.5 + c * 0.5 + b
+	end
+end
+
+local function OutInBounce(t, b, c, d)
+	if t < d * 0.5 then
+		return OutBounce(t * 2, b, c * 0.5, d)
+	else
+		return InBounce(t * 2 - d, b + c * 0.5, c * 0.5, d)
+	end
+end
+
+return Table.Lock {
+	[0] = Standard;
+	Deceleration;
+	Acceleration;
+	Sharp;
+
+	Linear;
+
+	InSine;
+	OutSine;
+	InOutSine;
+	OutInSine;
+
+	InBack;
+	OutBack;
+	InOutBack;
+	OutInBack;
+
+	InQuad;
+	OutQuad;
+	InOutQuad;
+	OutInQuad;
+
+	InQuart;
+	OutQuart;
+	InOutQuart;
+	OutInQuart;
+
+	InQuint;
+	OutQuint;
+	InOutQuint;
+	OutInQuint;
+
+	InBounce;
+	OutBounce;
+	InOutBounce;
+	OutInBounce;
+
+	InElastic;
+	OutElastic;
+	InOutElastic;
+	OutInElastic;
+
+	InCirc;
+	OutCirc;
+	InOutCirc;
+	OutInCirc;
+
+	InCubic;
+	OutCubic;
+	InOutCubic;
+	OutInCubic;
+
+	InExpo;
+	OutExpo;
+	InOutExpo;
+	OutInExpo;
+
+	Smooth;
+	Smoother;
+	RevBack;
+	RidiculousWiggle;
+	Spring;
+	SoftSpring;
+}
+]]></ProtectedString>
+						<BinaryString name="Tags"></BinaryString>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="RBXB7E8734C14E64A6B8383C562334804FE">
+					<Properties>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<Content name="LinkedSource"><null></null></Content>
+						<string name="Name">Bezier</string>
+						<string name="ScriptGuid">{E26019BE-C0C1-4F56-896A-07DE8B9815A5}</string>
+						<ProtectedString name="Source"><![CDATA[-- Smooth Interpolation Curve Generator
+-- @documentation https://rostrap.github.io/Libraries/Interpolation/Bezier/
+-- @source https://raw.githubusercontent.com/RoStrap/Interpolation/master/Bezier.lua
+-- @rostrap Bezier
+-- @author Validark
+-- @original https://github.com/gre/bezier-easing
+-- @testsite http://cubic-bezier.com/
+-- @testsite http://greweb.me/bezier-easing-editor/example/
+
+-- Bezier.new(x1, y1, x2, y2)
+-- @param numbers (x1, y1, x2, y2) The control points of your curve
+-- @returns function(t [b, c, d])
+--	@param number t the time elapsed [0, d]
+--	@param number b beginning value being interpolated (default = 0)
+--	@param number c change in value being interpolated (equivalent to: ending - beginning) (default = 1)
+--	@param number d duration interpolation is occurring over (default = 1)
+
+-- These values are established by empiricism with tests (tradeoff: performance VS precision)
+local NEWTON_ITERATIONS = 4
+local NEWTON_MIN_SLOPE = 0.001
+local SUBDIVISION_PRECISION = 0.0000001
+local SUBDIVISION_MAX_ITERATIONS = 10
+local K_SPLINE_TABLE_SIZE = 11
+
+local K_SAMPLE_STEP_SIZE = 1 / (K_SPLINE_TABLE_SIZE - 1)
+
+local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
+local Table = Resources:LoadLibrary("Table")
+local Debug = Resources:LoadLibrary("Debug")
+
+local function Linear(t, b, c, d)
+	return (c or 1)*t / (d or 1) + (b or 0)
+end
+
+local Bezier = {}
+
+function Bezier.new(x1, y1, x2, y2)
+	if not (x1 and y1 and x2 and y2) then Debug.Error("Need 4 numbers to construct a Bezier curve") end
+	if not (0 <= x1 and x1 <= 1 and 0 <= x2 and x2 <= 1) then Debug.Error("The x values must be within range [0, 1]") end
+
+	if x1 == y1 and x2 == y2 then
+		return Linear
+	end
+
+	-- Precompute redundant values
+	local e, f = 3*x1, 3*x2
+	local g, h, i = 1 - f + e, f - 2*e, 3*(1 - f + e)
+	local j, k = 2*h, 3*y1
+	local l, m = 1 - 3*y2 + k, 3*y2 - 2*k
+
+	-- Precompute samples table
+	local SampleValues = {}
+	for a = 0, K_SPLINE_TABLE_SIZE - 1 do
+		local z = a*K_SAMPLE_STEP_SIZE
+		SampleValues[a] = ((g*z + h)*z + e)*z -- CalcBezier
+	end
+
+	return function(t, b, c, d)
+		t = (c or 1)*t / (d or 1) + (b or 0)
+
+		if t == 0 or t == 1 then -- Make sure the endpoints are correct
+			return t
+		end
+
+		local CurrentSample = K_SPLINE_TABLE_SIZE - 2
+
+		for a = 1, CurrentSample do
+			if SampleValues[a] > t then
+				CurrentSample = a - 1
+				break
+			end
+		end
+
+		-- Interpolate to provide an initial guess for t
+		local IntervalStart = CurrentSample*K_SAMPLE_STEP_SIZE
+		local GuessForT = IntervalStart + K_SAMPLE_STEP_SIZE*(t - SampleValues[CurrentSample]) / (SampleValues[CurrentSample + 1] - SampleValues[CurrentSample])
+		local InitialSlope = (i*GuessForT + j)*GuessForT + e
+
+		if InitialSlope >= NEWTON_MIN_SLOPE then
+			for NewtonRaphsonIterate = 1, NEWTON_ITERATIONS do
+				local CurrentSlope = (i*GuessForT + j)*GuessForT + e
+				if CurrentSlope == 0 then break end
+				GuessForT = GuessForT - (((g*GuessForT + h)*GuessForT + e)*GuessForT - t) / CurrentSlope
+			end
+		elseif InitialSlope ~= 0 then
+			local IntervalStep = IntervalStart + K_SAMPLE_STEP_SIZE
+
+			for BinarySubdivide = 1, SUBDIVISION_MAX_ITERATIONS do
+				GuessForT = IntervalStart + 0.5*(IntervalStep - IntervalStart)
+				local BezierCalculation = ((g*GuessForT + h)*GuessForT + e)*GuessForT - t
+
+				if BezierCalculation > 0 then
+					IntervalStep = GuessForT
+				else
+					IntervalStart = GuessForT
+					BezierCalculation = -BezierCalculation
+				end
+
+				if BezierCalculation <= SUBDIVISION_PRECISION then break end
+			end
+		end
+
+		return ((l*GuessForT + m)*GuessForT + k)*GuessForT
+	end
+end
+
+return Table.Lock(Bezier)
+]]></ProtectedString>
+						<BinaryString name="Tags"></BinaryString>
+					</Properties>
+				</Item>
+			</Item>
+			<Item class="Folder" referent="RBX69E23ABAC3B94DF9BF7EA0CED97626D2">
+				<Properties>
+					<BinaryString name="AttributesSerialize"></BinaryString>
+					<string name="Name">DataTypes</string>
+					<BinaryString name="Tags"></BinaryString>
+				</Properties>
+				<Item class="ModuleScript" referent="RBXB774339A783A4AF0AC9C072CD8D2F77B">
+					<Properties>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<Content name="LinkedSource"><null></null></Content>
+						<string name="Name">Table</string>
+						<string name="ScriptGuid">{574FC406-9BF1-478B-9BC3-E62B4ED056F7}</string>
+						<ProtectedString name="Source"><![CDATA[-- Utility Table functions
+-- @documentation https://rostrap.github.io/Libraries/DataTypes/Table/
+-- @source https://raw.githubusercontent.com/RoStrap/DataTypes/master/Table.lua
+-- @rostrap Table
+-- This Library is not for a bunch of for-loop wrapper functions.
+-- Either write your own for-loops or learn python instead
+-- @author Validark
+
+local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
+
+local Table = {}
+
+function Table.Move(a1, f, e, t, a2)
+	-- Moves elements [f, e] from array a1 into a2 starting at index t
+	-- Equivalent to Lua 5.3's table.move
+	-- @param table a1 from which to draw elements from range
+	-- @param number f starting index for range
+	-- @param number e ending index for range
+	-- @param number t starting index to move elements from a1 within [f, e]
+	-- @param table a2 the second table to move these elements to
+	--	@default a2 = a1
+	-- @returns a2
+
+	a2 = a2 or a1
+	t = t + e
+
+	for i = e, f, -1 do
+		t = t - 1
+		a2[t] = a1[i]
+	end
+
+	return a2
+end
+
+function Table.Lock(Tab, __call)
+	-- Returns interface proxy which can read from table Tab but cannot modify it
+
+	local ModuleName = getfenv(2).script.Name
+
+	local Userdata = newproxy(true)
+	local Metatable = getmetatable(Userdata)
+
+	function Metatable:__index(Index)
+		local Value = Tab[Index]
+		return Value == nil and Resources:LoadLibrary("Debug").Error("!%q does not exist in read-only table", ModuleName, Index) or Value
+	end
+
+	function Metatable:__newindex(Index, Value)
+		Resources:LoadLibrary("Debug").Error("!Cannot write %s to index [%q] of read-only table", ModuleName, Value, Index)
+	end
+
+	function Metatable:__tostring()
+		return ModuleName
+	end
+
+	Metatable.__call = __call
+	Metatable.__metatable = "[" .. ModuleName .. "] Requested metatable of read-only table is locked"
+
+	return Userdata
+end
+
+return Table.Lock(Table)
+]]></ProtectedString>
+						<BinaryString name="Tags"></BinaryString>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="RBX65F38F32F388452CB6DAA16DD33E809F">
+					<Properties>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<Content name="LinkedSource"><null></null></Content>
+						<string name="Name">SortedArray</string>
+						<string name="ScriptGuid">{A877A259-1E93-4709-A1D0-E2F6937F3DA3}</string>
+						<ProtectedString name="Source"><![CDATA[-- Class that memoizes sorting by inserting values in order. Optimized for very large arrays.
+-- @documentation https://rostrap.github.io/Libraries/DataTypes/SortedArray/
+-- @source https://raw.githubusercontent.com/RoStrap/DataTypes/master/SortedArray.lua
+-- @rostrap SortedArray
+-- @author Validark
+
+local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
+local Table = Resources:LoadLibrary("Table")
+
+local sort = table.sort
+local insert = table.insert
+
+local SortedArray = {}
+local Comparisons = setmetatable({}, {__mode = "k"})
+
+SortedArray.__index = {
+	Unpack = unpack;
+	Concat = table.concat;
+	RemoveIndex = table.remove;
+}
+
+function SortedArray.new(self, Comparison)
+	if self then
+		sort(self, Comparison)
+	else
+		self = {}
+	end
+
+	Comparisons[self] = Comparison
+	return setmetatable(self, SortedArray)
+end
+
+local function FindClosest(self, Value, Low, High, Eq, Lt)
+	local Middle do
+		local Sum = Low + High
+		Middle = (Sum - Sum % 2) / 2
+	end
+
+	if Middle == 0 then
+		return nil
+	end
+
+	local Compare = Lt or Comparisons[self]
+	local Value2 = self[Middle]
+
+	while Middle ~= High do
+		if Eq then
+			if Eq(Value, Value2) then
+				return Middle
+			end
+		elseif Value == Value2 then
+			return Middle
+		end
+
+		local Bool
+
+		if Compare then
+			Bool = Compare(Value, Value2)
+		else
+			Bool = Value < Value2
+		end
+
+		if Bool then
+			High = Middle - 1
+		else
+			Low = Middle + 1
+		end
+
+		local Sum = Low + High
+		Middle = (Sum - Sum % 2) / 2
+		Value2 = self[Middle]
+	end
+
+	return Middle
+end
+
+function SortedArray.__index:Insert(Value)
+	-- Inserts a Value into the SortedArray while maintaining its sortedness
+
+	local Position = FindClosest(self, Value, 1, #self)
+	local Value2 = self[Position]
+
+	if Value2 then
+		local Compare = Comparisons[self]
+		local Bool
+
+		if Compare then
+			Bool = Compare(Value, Value2)
+		else
+			Bool = Value < Value2
+		end
+
+		Position = Bool and Position or Position + 1
+	else
+		Position = 1
+	end
+
+	insert(self, Position, Value)
+
+	return Position
+end
+
+function SortedArray.__index:Find(Value, Eq, Lt, U_0, U_n)
+	-- Finds a Value in a SortedArray and returns its position (or nil if non-existant)
+
+	local Position = FindClosest(self, Value, U_0 or 1, U_n or #self, Eq, Lt)
+
+	local Bool
+
+	if Position then
+		if Eq then
+			Bool = Eq(Value, self[Position])
+		else
+			Bool = Value == self[Position]
+		end
+	end
+
+	return Bool and Position or nil
+end
+
+function SortedArray.__index:Copy()
+	local New = {}
+
+	for i = 1, #self do
+		New[i] = self[i]
+	end
+
+	return New
+end
+
+function SortedArray.__index:Clone()
+	local New = {}
+
+	for i = 1, #self do
+		New[i] = self[i]
+	end
+
+	Comparisons[New] = Comparisons[self]
+	return setmetatable(New, SortedArray)
+end
+
+function SortedArray.__index:RemoveElement(Signature, Eq, Lt)
+	local Position = self:Find(Signature, Eq, Lt)
+
+	if Position then
+		return self:RemoveIndex(Position)
+	end
+end
+
+function SortedArray.__index:Sort()
+	sort(self, Comparisons[self])
+end
+
+function SortedArray.__index:SortIndex(Index)
+	-- Sorts a single element at number Index
+	-- Useful for when a single element is somehow altered such that it should get a new position in the array
+
+	return self:Insert(self:RemoveIndex(Index))
+end
+
+function SortedArray.__index:SortElement(Signature, Eq, Lt)
+	-- Sorts a single element if it exists
+	-- Useful for when a single element is somehow altered such that it should get a new position in the array
+
+	return self:Insert(self:RemoveElement(Signature, Eq, Lt))
+end
+
+function SortedArray.__index:GetIntersection(SortedArray2, Eq, Lt)
+	-- Returns a SortedArray of Commonalities between self and another SortedArray
+	-- If applicable, the returned SortedArray will inherit the Comparison function from self
+
+	if SortedArray ~= getmetatable(SortedArray2) then error("bad argument #2 to GetIntersection: expected SortedArray, got " .. typeof(SortedArray2) .. " " .. tostring(SortedArray2)) end
+	local Commonalities = SortedArray.new(nil, Comparisons[self])
+	local Count = 0
+	local Position = 1
+	local NumSelf = #self
+	local NumSortedArray2 = #SortedArray2
+
+	if NumSelf > NumSortedArray2 then -- Iterate through the shorter SortedArray
+		NumSelf, NumSortedArray2 = NumSortedArray2, NumSelf
+		self, SortedArray2 = SortedArray2, self
+	end
+
+	for i = 1, NumSelf do
+		local Current = self[i]
+		local CurrentPosition = SortedArray2:Find(Current, Eq, Lt, Position, NumSortedArray2)
+
+		if CurrentPosition then
+			Position = CurrentPosition
+			Count = Count + 1
+			Commonalities[Count] = Current
+		end
+	end
+
+	return Commonalities
+end
+
+return Table.Lock(SortedArray)
+]]></ProtectedString>
+						<BinaryString name="Tags"></BinaryString>
+					</Properties>
+				</Item>
+			</Item>
+			<Item class="Folder" referent="RBX50DED534CFCB49C7BA41AB41208DF3EA">
+				<Properties>
+					<BinaryString name="AttributesSerialize"></BinaryString>
+					<string name="Name">Debugging</string>
+					<BinaryString name="Tags"></BinaryString>
+				</Properties>
+				<Item class="ModuleScript" referent="RBX4F5FFC515E41415193A698345B269BDA">
+					<Properties>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<Content name="LinkedSource"><null></null></Content>
+						<string name="Name">Debug</string>
+						<string name="ScriptGuid">{3C461949-EA79-4DF4-ACD5-4534CBD756D5}</string>
+						<ProtectedString name="Source"><![CDATA[-- Debugging Utilities
+-- @documentation https://rostrap.github.io/Libraries/Debugging/Debug/
+-- @source https://raw.githubusercontent.com/RoStrap/Debugging/master/Debug.lua
+-- @rostrap Debug
+-- @author Validark
+
+local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
+local Table = Resources:LoadLibrary("Table")
+local Typer = Resources:LoadLibrary("Typer")
+
+local Debug = {}
+local TAB = (" "):rep(4)
+
+local Services = {
+	Chat = "game:GetService(\"Chat\")";
+	Teams = "game:GetService(\"Teams\")";
+	Players = "game:GetService(\"Players\")";
+	Lighting = "game:GetService(\"Lighting\")";
+	Workspace = "game:GetService(\"Workspace\")";
+	StarterGui = "game:GetService(\"StarterGui\")";
+	TestService = "game:GetService(\"TestService\")";
+	StarterPack = "game:GetService(\"StarterPack\")";
+	SoundService = "game:GetService(\"SoundService\")";
+	StarterPlayer = "game:GetService(\"StarterPlayer\")";
+	ServerStorage = "game:GetService(\"ServerStorage\")";
+	ReplicatedFirst = "game:GetService(\"ReplicatedFirst\")";
+	ReplicatedStorage = "game:GetService(\"ReplicatedStorage\")";
+	LocalizationService = "game:GetService(\"LocalizationService\")";
+	ServerScriptService = "game:GetService(\"ServerScriptService\")";
+}
+
+Debug.DirectoryToString = Typer.AssignSignature(Typer.Instance, function(Object)
+	--- Gets the string of the directory of an object, properly formatted
+	-- string DirectoryToString(Object)
+	-- @returns Objects location in proper Lua format
+	-- @author Validark
+	-- Corrects the built-in GetFullName function so that it returns properly formatted text.
+	return (
+		Object:GetFullName()
+			:gsub("^[^%.]+", Services)
+			:gsub("%.([^%.%s]*%s[^%.]*)", "%[\"%1\"%]")
+			:gsub("%.(%d[^%.]*)", "%[\"%1\"%]")
+	)
+end)
+
+local GetErrorData do
+	-- Standard RoStrap Erroring system
+	-- Prefixing errors with '!' makes Error expect the [error origin].Name as first parameter after Error string
+	-- Past the initial Error string, subsequent arguments get unpacked in a string.format of the error string
+	-- Arguments formmatted into the string get stringified (see above function)
+	-- Assert falls back on Error
+	-- Error blames the latest item on the traceback as the cause of the error
+	-- Error makes it clear which Library and function are being misused
+	-- @author Validark
+
+	local Replacers = {
+		["Index ?"] = "__index";
+		["Newindex ?"] = "__newindex";
+	}
+
+	local function Format(String, ...)
+		return String:format(...)
+	end
+
+	local CommandBar = {Name = "Command bar"}
+
+	function GetErrorData(Err, ...) -- Make sure if you don't intend to format arguments in, you do %%f instead of %f
+		if type(Err) ~= "string" then
+			error(GetErrorData("!The first parameter of error formatting must be a string", "Debug"))
+		end
+
+		local t = {...}
+
+		local Traceback = debug.traceback()
+		local ErrorDepth = select(2, Traceback:gsub("\n", "")) - 2
+
+		local Prefix
+		Err, Prefix = Err:gsub("^!", "", 1)
+		local ModuleName = Prefix == 1 and table.remove(t, 1) or (getfenv(ErrorDepth).script or CommandBar).Name
+		local FunctionName
+
+		for i = 1, select("#", ...) do
+			t[i] = Debug.Inspect(t[i])
+		end
+
+		for x in Traceback:sub(1, -11):gmatch("%- [^\r\n]+[\r\n]") do
+			FunctionName = x
+		end
+
+		FunctionName = FunctionName:sub(3, -2):gsub("%l+ (%S+)$", "%1"):gsub(" ([^\n\r]+)", " %1", 1)
+
+		local i = 0
+		for x in Err:gmatch("%%%l") do
+			i = i + 1
+			if x == "%q" then
+				t[i] = t[i]:gsub(" (%S+)$", " \"%1\"", 1)
+			end
+		end
+
+		local Success, ErrorString = pcall(Format, "[%s] {%s} " .. Err:gsub("%%q", "%%s"), ModuleName, Replacers[FunctionName] or FunctionName, unpack(t))
+
+		if Success then
+			return ErrorString, ErrorDepth
+		else
+			error(GetErrorData("!Error formatting failed, perhaps try escaping non-formattable tags like so: %%%%f\n(Error Message): " .. ErrorString, "Debug"))
+		end
+	end
+
+	function Debug.Warn(...)
+		warn((GetErrorData(...)))
+	end
+
+	function Debug.Error(...)
+		error(GetErrorData(...))
+	end
+
+	function Debug.Assert(Condition, ...)
+		return Condition or error(GetErrorData(...))
+	end
+end
+
+do
+	local function Alphabetically(a, b)
+		local typeA = type(a)
+		local typeB = type(b)
+
+		if typeA == typeB then
+			if typeA == "number" then
+				return a < b
+			else
+				return tostring(a):lower() < tostring(b):lower()
+			end
+		else
+			return typeA < typeB
+		end
+	end
+
+	Debug.AlphabeticalOrder = Typer.AssignSignature(Typer.Table, function(Dictionary)
+		--- Iteration function that iterates over a dictionary in alphabetical order
+		-- function AlphabeticalOrder(Dictionary)
+		-- @param table Dictionary That which will be iterated over in alphabetical order
+		-- A dictionary looks like this: {Apple = true, Noodles = 5, Soup = false}
+		-- Not case-sensitive
+		-- @author Validark
+
+		local Count = 0
+		local Order = {}
+
+		for Key in next, Dictionary do
+			Count = Count + 1
+			Order[Count] = Key
+		end
+
+		Resources:LoadLibrary("SortedArray").new(Order, Alphabetically)
+
+		return function(Table, Previous)
+			local Key = Order[Previous == nil and 1 or ((Order:Find(Previous) or error("invalid key to 'AlphabeticalOrder' " .. tostring(Previous))) + 1)]
+			return Key, Table[Key]
+		end, Dictionary, nil
+	end)
+end
+
+function Debug.UnionIteratorFunctions(...)
+	-- Takes in functions ..., and returns a function which unions them, which can be called on a table
+	-- Will iterate through a table, using the iterator functions passed in from left to right
+	-- Will pass the CurrentIteratorFunction index in the stack as the last variable
+	-- UnionIteratorFunctions(Get0, ipairs, Debug.AlphabeticalOrder)(Table)
+
+	local IteratorFunctions = {...}
+
+	for i = 1, #IteratorFunctions do
+		if type(IteratorFunctions[i]) ~= "function" then
+			error(GetErrorData("Cannot union Iterator functions which aren't functions"))
+		end
+	end
+
+	return function(Table)
+		local Count = 0
+		local Order = {[0] = {}}
+		local KeysSeen = {}
+
+		for i = 1, #IteratorFunctions do
+			local Function, TableToIterateThrough, Next = IteratorFunctions[i](Table)
+
+			if type(Function) ~= "function" or type(TableToIterateThrough) ~= "table" then
+				error(GetErrorData("Iterator function " .. i .. " must return a stack of types as follows: Function, Table, Variant"))
+			end
+
+			while true do
+				local Data = {Function(TableToIterateThrough, Next)}
+				Next = Data[1]
+				if Next == nil then break end
+				if not KeysSeen[Next] then
+					KeysSeen[Next] = true
+					Count = Count + 1
+					Data[#Data + 1] = i
+					Order[Count] = Data
+				end
+			end
+		end
+
+		return function(_, Previous)
+			for i = 0, Count do
+				if Order[i][1] == Previous then
+					local Data = Order[i + 1]
+					if Data then
+						return unpack(Data)
+					else
+						return nil
+					end
+				end
+			end
+
+			error(GetErrorData("invalid key to unioned iterator function: " .. Previous))
+		end, Table, nil
+	end
+end
+
+local EachOrder do
+	-- TODO: Write a function that takes multiple iterator functions and iterates through each passed in function
+	-- EachOrder(Get0(Table), ipairs(Table), AlphabeticalOrder(Table))
+end
+
+do
+	local function Get0(t)
+		return function(t2, val)
+			if val == nil and t2[0] ~= nil then
+				return 0, t2[0]
+			end
+		end, t, nil
+	end
+
+	local typeof = typeof or type
+	local ArrayOrderThenAlphabetically = Debug.UnionIteratorFunctions(Get0, ipairs, Debug.AlphabeticalOrder)
+	local ConvertTableIntoString
+
+	local function Parse(Object, Multiline, Depth, EncounteredTables)
+		local Type = typeof(Object)
+
+		return
+			Type == "table" and (EncounteredTables[Object] and "[table " .. EncounteredTables[Object] .. "]" or ConvertTableIntoString(Object, nil, Multiline, (Depth or 1) + 1, EncounteredTables))
+			or Type == "string" and "\"" .. Object .. "\""
+			or Type == "Instance" and "<" .. Debug.DirectoryToString(Object) .. ">"
+			or (Type == "function" or Type == "userdata") and Type
+			or tostring(Object)
+	end
+
+	function ConvertTableIntoString(Table, TableName, Multiline, Depth, EncounteredTables)
+		local n = EncounteredTables.n + 1
+		EncounteredTables[Table] = n
+		EncounteredTables.n = n
+
+		local Output = {}
+		local OutputCount = 0
+
+		for Key, Value, Iter in ArrayOrderThenAlphabetically(Table) do
+			if not Multiline and Iter < 3 then
+				Output[OutputCount + 1] = (Iter == 1 and "[0] = " or "") .. Parse(Value, Multiline, Depth, EncounteredTables)
+				Output[OutputCount + 2] = ", "
+				OutputCount = OutputCount + 2
+			else
+				if Multiline then
+					OutputCount = OutputCount + 1
+					Output[OutputCount] = "\n"
+					Output[OutputCount + 1] = (TAB):rep(Depth)
+				else
+					OutputCount = OutputCount - 1
+				end
+
+				if type(Key) == "string" and not Key:find("^%d") and not Key:find("%s") then
+					Output[OutputCount + 2] = Key
+					OutputCount = OutputCount - 2
+				else
+					Output[OutputCount + 2] = "["
+					Output[OutputCount + 3] = Parse(Key, Multiline, Depth, EncounteredTables)
+					Output[OutputCount + 4] = "]"
+				end
+
+				Output[OutputCount + 5] = " = "
+				Output[OutputCount + 6] = Parse(Value, Multiline, Depth, EncounteredTables)
+				Output[OutputCount + 7] = Multiline and ";" or ", "
+				OutputCount = OutputCount + 7
+			end
+		end
+
+		local OutputStart = 1
+
+		if Output[OutputCount] == ", " then
+			if Multiline then
+				OutputStart = OutputStart + 2
+			end
+			OutputCount = OutputCount - 1
+		elseif Multiline then
+			Output[OutputCount + 1] = "\n"
+			Output[OutputCount + 2] = (TAB):rep(Depth)
+			OutputCount = OutputCount + 2
+		end
+
+		local Metatable = getmetatable(Table)
+
+		OutputStart = OutputStart - 1
+
+		if not Multiline or Output[OutputCount - 1] ~= "\n" then
+			OutputCount = OutputCount + 1
+		end
+
+		Output[OutputStart] = "{"
+		Output[OutputCount] = "}"
+
+		if Metatable then
+			Output[OutputCount + 1] = " <- "
+			Output[OutputCount + 2] = type(Metatable) == "table" and ConvertTableIntoString(Metatable, nil, Multiline, 1, EncounteredTables) or Debug.Inspect(Metatable)
+			OutputCount = OutputCount + 2
+		end
+
+		if TableName then
+			Output[OutputStart - 1] = " = "
+			Output[OutputStart - 2] = TableName
+			OutputStart = OutputStart - 2
+		end
+
+		return table.concat(Output, "", OutputStart, OutputCount)
+	end
+
+	Debug.TableToString = Typer.AssignSignature(Typer.Table, Typer.OptionalBoolean, Typer.OptionalString, function(Table, Multiline, TableName)
+		--- Converts a table into a readable string
+		-- string TableToString(Table, TableName, Multiline)
+		-- @param table Table The Table to convert into a readable string
+		-- @param string TableName Optional Name parameter that puts a "[TableName] = " at the beginning
+		-- @returns a readable string version of the table
+
+		return ConvertTableIntoString(Table, TableName, Multiline, 1, {n = 0})
+	end)
+end
+
+do
+	local EscapedCharacters = {"%", "^", "$", "(", ")", ".", "[", "]", "*", "+", "-", "?"}
+	local Escapable = "([%" .. table.concat(EscapedCharacters, "%") .. "])"
+
+	Debug.EscapeString = Typer.AssignSignature(Typer.String, function(String)
+		--- Turns strings into Lua-readble format
+		-- string Debug.EscapeString(String)
+		-- @returns Objects location in proper Lua format
+		-- @author Validark
+		-- Useful for when you are doing string-intensive coding
+		-- Those minus signs always get me when I'm not using this function!
+
+		return (
+			String
+				:gsub(Escapable, "%%%1")
+				:gsub("([\"\'\\])", "\\%1")
+		)
+	end)
+end
+
+function Debug.Inspect(...)
+	--- Returns a string representation of anything
+	-- @param any Object The object you wish to represent as a string
+	-- @returns a readable string representation of the object
+	
+	local List = ""
+	
+	for i = 1, select("#", ...) do
+		local Data = select(i, ...)
+		local DataType = typeof(Data)
+		local DataString
+	
+		if DataType == "Instance" then
+			DataType = Data.ClassName
+			DataString = Debug.DirectoryToString(Data)
+		else
+			DataString = DataType == "table" and Debug.TableToString(Data)
+				or DataType == "string" and "\"" .. Data .. "\""
+				or tostring(Data)
+		end
+	
+		List = List .. ", " .. ((DataType .. " " .. DataString):gsub("^" .. DataType .. " " .. DataType, DataType, 1))
+	end
+	
+	if List == "" then
+		return "NONE"
+	else
+		return List:sub(3)
+	end
+end
+
+return Table.Lock(Debug)
+]]></ProtectedString>
+						<BinaryString name="Tags"></BinaryString>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="RBXD0078CA2313C4C53B1B90DCC5F326A1C">
+					<Properties>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<Content name="LinkedSource"><null></null></Content>
+						<string name="Name">Typer</string>
+						<string name="ScriptGuid">{F4FAB00E-1EF4-47F2-AA8D-E23FB934007B}</string>
+						<ProtectedString name="Source"><![CDATA[-- Powerful, light-weight type checker
+-- @documentation https://rostrap.github.io/Libraries/Debugging/Typer/
+-- @source https://raw.githubusercontent.com/RoStrap/Debugging/master/Typer.lua
+-- @rostrap Typer
+-- @author Validark
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Resources = require(ReplicatedStorage:WaitForChild("Resources"))
+
+local Table = Resources:LoadLibrary("Table")
+
+local BuiltInTypes = {
+	Nil = "nil";
+	Bool = "boolean";
+	Boolean = "boolean";
+	Number = "number";
+	String = "string";
+	Userdata = "userdata";
+	Function = "function";
+	Thread = "thread";
+	Table = "table";
+}
+
+local CustomTypes = {
+	Any = function()
+		return true
+	end;
+
+	Array = function(Array, Type, Callback, Castable)
+		if Type ~= "table" then
+			return false
+		end
+
+		local Size = #Array
+		local Bool = false
+
+		for Key, Value in next, Array do
+			Bool = true
+			if type(Key) ~= "number" or Key % 1 ~= 0 or Key < 1 or Key > Size then
+				return false
+			elseif Callback then
+				local Success = Callback(Value)
+
+				if Success then
+					if Castable then
+						Array[Key] = Success
+					end
+				else
+					return false
+				end
+			end
+		end
+
+		return Bool
+	end;
+
+	Dictionary = function(Dictionary, Type, Callback, Castable)
+		if Type ~= "table" then
+			return false
+		end
+
+		local Bool = false
+
+		for Key, Value in next, Dictionary do
+			Bool = true
+			if type(Key) == "number" then
+				return false
+			elseif Callback then
+				local Success = Callback(Value)
+
+				if Success then
+					if Castable then
+						Dictionary[Key] = Success
+					end
+				else
+					return false
+				end
+			end
+		end
+
+		return Bool
+	end;
+
+	Table = function(Table, Type, Callback, Castable)
+		if Type ~= "table" then
+			return false
+		end
+
+		if Callback then
+			local Bool = false
+
+			for Key, Value in next, Table do
+				Bool = true
+				local Success = Callback(Value)
+
+				if Success then
+					if Castable then
+						Table[Key] = Success
+					end
+				else
+					return false
+				end
+			end
+
+			return Bool
+		else
+			return true
+		end
+	end;
+
+	EmptyTable = function(Value, Type)
+		return Type ~= "table" or next(Value) == nil
+	end;
+
+	NonNil = function(Value)
+		return Value ~= nil
+	end;
+
+	Integer = function(Value, Type)
+		return Type == "number" and Value % 1 == 0
+	end;
+
+	PositiveInteger = function(Value, Type)
+		return Type == "number" and Value > 0 and Value % 1 == 0
+	end;
+
+	NegativeInteger = function(Value, Type)
+		return Type == "number" and Value < 0 and Value % 1 == 0
+	end;
+
+	NonPositiveInteger = function(Value, Type)
+		return Type == "number" and Value <= 0 and Value % 1 == 0
+	end;
+
+	NonNegativeInteger = function(Value, Type)
+		return Type == "number" and Value >= 0 and Value % 1 == 0
+	end;
+
+	PositiveNumber = function(Value, Type)
+		return Type == "number" and Value > 0
+	end;
+
+	NegativeNumber = function(Value, Type)
+		return Type == "number" and Value < 0
+	end;
+
+	NonPositiveNumber = function(Value, Type)
+		return Type == "number" and Value <= 0
+	end;
+
+	NonNegativeNumber = function(Value, Type)
+		return Type == "number" and Value >= 0
+	end;
+
+	Truthy = function(Value)
+		return Value and true or false
+	end;
+
+	Falsy = function(Value)
+		return not Value
+	end;
+
+	Enum = function(_, Type)
+		return Type == "Enum" or Type == "EnumItem"
+	end;
+
+	EnumType = function(_, Type) -- For whatever reason, typeof() returns "Enum" for EnumItems
+		return Type == "Enum"
+	end;
+
+	True = function(Value)
+		return Value == true
+	end;
+
+	False = function(Value)
+		return Value == false
+	end;
+}
+
+local function TransformTableCheckerData(PotentialTypes)
+	-- [0] is the Expectation string
+	-- Array in the form {"number", "string", "nil"} where each value is a string matchable by typeof()
+	-- Key-Value pairs in the form {[string Name] = function}
+
+	if not PotentialTypes[0] then -- It was already transformed if written to 0, no haxing pls
+		local Expectation = ": expected "
+		PotentialTypes[0] = Expectation
+
+		for Name in next, PotentialTypes do
+			local NameType = type(Name)
+
+			if NameType == "string" then
+				Expectation = Expectation .. Name .. " or "
+			elseif NameType ~= "number" then
+				Resources:LoadLibrary("Debug").Error("Key-Value pairs should be in the form [string Name] = function, got %s", Name)
+			end
+		end
+
+		local i = 0
+		local AmountPotentialTypes = #PotentialTypes
+
+		while i < AmountPotentialTypes do
+			i = i + 1
+			local PotentialType = PotentialTypes[i]
+
+			if type(PotentialType) ~= "string" then
+				Resources:LoadLibrary("Debug").Error("PotentialTypes in the array section must be strings in the form {\"number\", \"string\", \"nil\"}")
+			end
+
+			Expectation = Expectation .. PotentialType .. " or "
+			local TypeCheck = CustomTypes[PotentialType]
+
+			if TypeCheck then
+				table.remove(PotentialTypes, i)
+				i = i - 1
+				AmountPotentialTypes = AmountPotentialTypes - 1
+				PotentialTypes[PotentialType] = TypeCheck
+			end
+		end
+
+		PotentialTypes[0] = Expectation:sub(1, -5)
+	end
+
+	return PotentialTypes
+end
+
+local function Check(PotentialTypes, Parameter, ArgumentNumOrName)
+	local TypeOf = typeof(Parameter)
+
+	for i = 1, #PotentialTypes do
+		if PotentialTypes[i] == TypeOf then
+			return Parameter or true
+		end
+	end
+
+	for Key, CheckFunction in next, PotentialTypes do
+		if type(Key) == "string" then
+			local Success = CheckFunction(Parameter, TypeOf)
+
+			if Success then
+				return Key:find("^Enum") and Success or Parameter or true
+			end
+		end
+	end
+
+	local ArgumentNumberType = type(ArgumentNumOrName)
+
+	return false, "bad argument"
+		.. (ArgumentNumOrName and (ArgumentNumberType == "number" and " #" .. ArgumentNumOrName or ArgumentNumberType == "string" and " to " .. ArgumentNumOrName) or "")
+		.. PotentialTypes[0] .. ", got " .. Resources:LoadLibrary("Debug").Inspect(Parameter)
+end
+
+local Typer = {}
+
+local CallToCheck = {__call = Check}
+
+setmetatable(Typer, {
+	__index = function(self, index)
+		local t = {}
+		self[index] = t
+
+		for i in (index .. "Or"):gmatch("(%w-)Or") do -- Not the prettiest, but hey, we got parsing baby!
+			if i:find("^Optional") then
+				i = i:sub(9)
+				t[1] = "nil"
+			end
+
+			if i:find("^InstanceOfClass") then
+				local ClassName = i:sub(16)
+
+				t["Instance of class " .. ClassName] = function(Value, Type)
+					return Type == "Instance" and Value.ClassName == ClassName
+				end
+			elseif i:find("^InstanceWhichIsA") then
+				local ClassName = i:sub(17)
+
+				t["Instance which is a " .. ClassName] = function(Value, Type)
+					return Type == "Instance" and Value:IsA(ClassName)
+				end
+			elseif i:find("^EnumOfType") then
+				i = i:sub(11)
+				local Castables = Enum[i]:GetEnumItems()
+
+				for a = 1, #Castables do
+					local Enumerator = Castables[a]
+					Castables[Enumerator] = Enumerator
+					Castables[Enumerator.Name] = Enumerator
+					Castables[Enumerator.Value] = Enumerator
+					Castables[a] = nil
+				end
+
+				t["Enum of type " .. i] = function(Value)
+					return Castables[Value] or false
+				end
+			elseif i:find("^EnumerationOfType") then
+				i = i:sub(18)
+				local EnumerationType = Resources:LoadLibrary("Enumeration")[i]
+
+				t["Enumeration of type " .. i] = function(Value)
+					return EnumerationType:Cast(Value)
+				end
+			elseif i:find("^ArrayOf%a+s$") then
+				i = i:match("^ArrayOf(%a+)s$")
+				local ArrayType = Typer[i]
+				local Function = CustomTypes.Array
+				local Castable = i:find("^Enum") and true or false
+
+				t["Array of " .. ArrayType[0]:sub(12):gsub("%S+", "%1s", 1)] = function(Value, Type)
+					return Function(Value, Type, ArrayType, Castable)
+				end
+			elseif i:find("^DictionaryOf%a+s$") then
+				i = i:match("^DictionaryOf(%a+)s$")
+				local DictionaryType = Typer[i]
+				local Function = CustomTypes.Dictionary
+				local Castable = i:find("^Enum") and true or false
+
+				t["Dictionary of " .. DictionaryType[0]:sub(12):gsub("%S+", "%1s", 1)] = function(Value, Type)
+					return Function(Value, Type, DictionaryType, Castable)
+				end
+			elseif i:find("^TableOf%a+s$") then
+				i = i:match("^TableOf(%a+)s$")
+				local TableType = Typer[i]
+				local Function = CustomTypes.Table
+				local Castable = i:find("^Enum") and true or false
+
+				t["Table of " .. TableType[0]:sub(12):gsub("%S+", "%1s", 1)] = function(Value, Type)
+					return Function(Value, Type, TableType, Castable)
+				end
+			else
+				t[#t + 1] = BuiltInTypes[i] or i
+			end
+		end
+
+		return setmetatable(TransformTableCheckerData(t), CallToCheck)
+	end;
+})
+
+function Typer.AssignSignature(...)
+	local FirstValueToCheckOffset = 0
+	local StackSignature
+
+	if CustomTypes.PositiveInteger(..., type((...))) then
+		FirstValueToCheckOffset = ... - 1
+		StackSignature = {select(2, ...)}
+	else
+		StackSignature = {...}
+	end
+
+	local Function = table.remove(StackSignature)
+
+	local NumTypes = #StackSignature
+	local Castable
+
+	for a = 1, NumTypes do
+		local ParameterSignature = StackSignature[a]
+
+		if type(ParameterSignature) == "table" then
+			for i in next, TransformTableCheckerData(ParameterSignature) do
+				if type(i) == "string" and i:find("^Enum") then
+					if not Castable then
+						Castable = {}
+
+						for b = 1, a - 1 do
+							Castable[b] = false
+						end
+					end
+
+					Castable[a] = true
+				end
+			end
+
+			if Castable and not Castable[a] then
+				Castable[a] = false
+			end
+		else
+			Resources:LoadLibrary("Debug").Error("Definition for parameter #" .. a .. " must be a table")
+		end
+	end
+
+	if Castable then
+		return function(...)
+			local NumParameters = select("#", ...) -- This preserves nil's on the stack
+			local Stack = {...}
+
+			for a = 1, NumParameters < NumTypes and NumTypes or NumParameters do
+				local Success, Error = Check(StackSignature[a] or Typer.Nil, Stack[a + FirstValueToCheckOffset], a + FirstValueToCheckOffset)
+
+				if Success then
+					if Castable[a] and Success ~= true then
+						Stack[a + FirstValueToCheckOffset] = Success
+					end
+				elseif not Success then
+					return Resources:LoadLibrary("Debug").Error(Error)
+				end
+			end
+
+			return Function(unpack(Stack, 1, NumParameters))
+		end
+	else -- Don't penalize cases which don't need to cast an Enum
+		return function(...)
+			local NumParameters = select("#", ...)
+
+			for a = 1, NumParameters < NumTypes and NumTypes or NumParameters do
+				local Success, Error = Check(StackSignature[a] or Typer.Nil, select(a + FirstValueToCheckOffset, ...), a + FirstValueToCheckOffset)
+
+				if not Success then
+					return Resources:LoadLibrary("Debug").Error(Error)
+				end
+			end
+
+			return Function(...)
+		end
+	end
+end
+
+local ExternalTransformTable = Typer.AssignSignature(Typer.Table, TransformTableCheckerData)
+
+Typer.Check = function(PotentialTypes, Parameter, ArgumentNumOrName)
+	return Check(ExternalTransformTable(PotentialTypes), Parameter, ArgumentNumOrName)
+end
+
+Typer.MapDefinition = Typer.AssignSignature(Typer.Table, function(self)
+	for _, Type in next, self do
+		ExternalTransformTable(Type)
+	end
+
+	return function(Tab)
+		if type(Tab) ~= "table" then
+			return false, "|Map.__call| Must be called with a Table"
+		end
+
+		for Index in next, Tab do
+			if not self[Index] then
+				return false, "|Map.__call| " .. Resources:LoadLibrary("Debug").Inspect(Index) .. " is not a valid Key"
+			end
+		end
+
+		for Index, Type in next, self do
+			local Success, Error = Typer.Check(Type, Tab[Index], Index)
+
+			if not Success then
+				return false, "|Map.__call| " .. Error
+			end
+		end
+
+		return Tab
+	end;
+end)
+
+return Table.Lock(Typer)
+]]></ProtectedString>
+						<BinaryString name="Tags"></BinaryString>
+					</Properties>
+				</Item>
+			</Item>
+			<Item class="Folder" referent="RBX1DCE3041C19C43E3828FFE82496142F2">
+				<Properties>
+					<BinaryString name="AttributesSerialize"></BinaryString>
+					<string name="Name">Classes</string>
+					<BinaryString name="Tags"></BinaryString>
+				</Properties>
+				<Item class="ModuleScript" referent="RBX6C9F097F6A43451096A0528CFD5D18A1">
+					<Properties>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<Content name="LinkedSource"><null></null></Content>
+						<string name="Name">Enumeration</string>
+						<string name="ScriptGuid">{D7733390-EBBA-4715-9E31-480CDDD90F88}</string>
+						<ProtectedString name="Source"><![CDATA[-- Pure-lua implementation of Roblox-style Enums
+-- @documentation https://rostrap.github.io/Libraries/Classes/Enumeration
+-- @source https://raw.githubusercontent.com/RoStrap/Classes/master/Enumeration.lua
+-- @rostrap Enumeration
+-- @author Validark
+
+local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
+local Debug = Resources:LoadLibrary("Debug")
+local Typer = Resources:LoadLibrary("Typer")
+local SortedArray = Resources:LoadLibrary("SortedArray")
+
+local Error__index = {
+	__index = function(_, i)
+		Debug.Error(tostring(i) .. " is not a valid EnumerationItem")
+	end;
+}
+
+local Error__index2 = {
+	__index = function(_, i)
+		Debug.Error(tostring(i) .. " is not a valid member")
+	end;
+}
+
+local EnumerationsArray = SortedArray.new(nil, function(Left, Right)
+	return tostring(Left) < tostring(Right)
+end)
+
+local Enumerations = setmetatable({}, Error__index)
+
+function Enumerations:GetEnumerations()
+	return EnumerationsArray:Copy()
+end
+
+local function ReadOnlyNewIndex(_, Index, _)
+	Debug.Error("Cannot write to index [%q]", Index)
+end
+
+local function CompareEnumTypes(EnumItem1, EnumItem2)
+	return EnumItem1.Value < EnumItem2.Value
+end
+
+local Casts = {}
+local EnumContainerTemplate = {}
+EnumContainerTemplate.__index = setmetatable({}, Error__index)
+
+function EnumContainerTemplate.__index:GetEnumerationItems()
+	local Array = {}
+	local Count = 0
+
+	for _, Item in next, EnumContainerTemplate[self] do
+		Count = Count + 1
+		Array[Count] = Item
+	end
+
+	table.sort(Array, CompareEnumTypes)
+	return Array
+end
+
+function EnumContainerTemplate.__index:Cast(Value)
+	local Castables = Casts[self]
+	local Cast = Castables[Value]
+
+	if Cast then
+		return Cast
+	else
+		return false, "[" .. Debug.Inspect(Value) .. "] is not a valid " .. tostring(self)
+	end
+end
+
+local function ConstructUserdata(__index, __newindex, __tostring)
+	local Enumeration = newproxy(true)
+
+	local EnumerationMetatable = getmetatable(Enumeration)
+	EnumerationMetatable.__index = __index
+	EnumerationMetatable.__newindex = __newindex
+	EnumerationMetatable.__tostring = function() return __tostring end
+	EnumerationMetatable.__metatable = "[Enumeration] Requested metatable is locked"
+
+	return Enumeration
+end
+
+local function ConstructEnumerationItem(Name, Value, EnumContainer, LockedEnumContainer, EnumerationStringStub, Castables)
+	local Item = ConstructUserdata(setmetatable({
+		Name = Name;
+		Value = Value;
+		EnumerationType = LockedEnumContainer
+	}, Error__index2), ReadOnlyNewIndex, EnumerationStringStub .. Name, Castables)
+
+	Castables[Name] = Item
+	Castables[Value] = Item
+	Castables[Item] = Item
+
+	EnumContainer[Name] = Item
+end
+
+local MakeEnumeration = Typer.AssignSignature(2, Typer.String, Typer.ArrayOfStringsOrDictionaryOfNumbers, function(_, EnumType, EnumTypes)
+	if rawget(Enumerations, EnumType) then Debug.Error("Enumeration of EnumType " .. EnumType .. " already exists") end
+
+	local Castables = {}
+	local EnumContainer = setmetatable({}, EnumContainerTemplate)
+	local LockedEnumContainer = ConstructUserdata(EnumContainer, ReadOnlyNewIndex, EnumType)
+	local EnumerationStringStub = "Enumeration." .. EnumType .. "."
+	local NumEnumTypes = #EnumTypes
+
+	if NumEnumTypes > 0 then
+		for i = 1, NumEnumTypes do
+			ConstructEnumerationItem(EnumTypes[i], i - 1, EnumContainer, LockedEnumContainer, EnumerationStringStub, Castables)
+		end
+	else
+		for Name, Value in next, EnumTypes do
+			ConstructEnumerationItem(Name, Value, EnumContainer, LockedEnumContainer, EnumerationStringStub, Castables)
+		end
+	end
+
+	Casts[LockedEnumContainer] = Castables
+	EnumContainerTemplate[LockedEnumContainer] = EnumContainer
+	EnumerationsArray:Insert(LockedEnumContainer)
+	Enumerations[EnumType] = LockedEnumContainer
+end)
+
+return ConstructUserdata(Enumerations, MakeEnumeration, "Enumerations")
+]]></ProtectedString>
+						<BinaryString name="Tags"></BinaryString>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="RBX894504C58DCE4663A35DC8B3566FD004">
+					<Properties>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<Content name="LinkedSource"><null></null></Content>
+						<string name="Name">PseudoInstance</string>
+						<string name="ScriptGuid">{56F45828-7AA5-40A0-8C61-4E53669AA655}</string>
+						<ProtectedString name="Source"><![CDATA[-- Rigidly defined PseudoInstance class system to instantiate Roblox-like instances
+-- @source https://raw.githubusercontent.com/RoStrap/Classes/master/PseudoInstance.lua
+-- @rostrap PseudoInstance
+-- @documentation https://rostrap.github.io/Libraries/Classes/PseudoInstance/
+-- @author Validark
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Resources = require(ReplicatedStorage:WaitForChild("Resources"))
+
+local Debug = Resources:LoadLibrary("Debug")
+local Table = Resources:LoadLibrary("Table")
+local Typer = Resources:LoadLibrary("Typer")
+local Signal = Resources:LoadLibrary("Signal")
+local Janitor = Resources:LoadLibrary("Janitor")
+local SortedArray = Resources:LoadLibrary("SortedArray")
+local Enumeration = Resources:LoadLibrary("Enumeration")
+
+local Templates = Resources:GetLocalTable("Templates")
+local Metatables = setmetatable({}, {__mode = "kv"})
+
+local function Empty() end
+
+local function Metatable__index(this, i)
+	local self = Metatables[this] or this -- self is the internal copy
+	local Value = self.__rawdata[i]
+	local ClassTemplate = self.__class
+
+	if Value == nil then
+		Value = ClassTemplate.Methods[i]
+	else
+		return Value
+	end
+
+	if Value == nil and not ClassTemplate.Properties[i] then
+		local GetConstructorAndDestructor = ClassTemplate.Events[i]
+
+		if GetConstructorAndDestructor then
+			if self == this then -- if internal access
+				local Event = Signal.new(GetConstructorAndDestructor(self))
+				rawset(self, i, Event)
+				return Event
+			else
+				return self[i].Event
+			end
+		elseif ClassTemplate.Internals[i] == nil or self ~= this then
+			Debug.Error("[%s] is not a valid Property of " .. tostring(self), i)
+		end
+	else
+		return Value
+	end
+end
+
+local function Metatable__newindex(this, i, v)
+	local self = Metatables[this] or this
+	local Type = self.__class.Properties[i]
+
+	if Type then
+		Type(self, v)
+	elseif self == this and self.__class.Internals[i] ~= nil then
+		rawset(self, i, v)
+	else
+		Debug.Error(i .. " is not a modifiable property")
+	end
+end
+
+local function Metatable__tostring(self)
+	return (Metatables[self] or self).__class.ClassName
+end
+
+local function Metatable__rawset(self, Property, Value)
+	self.__rawdata[Property] = Value
+	return self
+end
+
+local function ReturnHelper(Success, ...)
+	if Success then
+		return ...
+	else
+		Debug.Error(...)
+	end
+end
+
+local ThreadDepthTracker = setmetatable({}, {__mode = "k"})
+
+local function Metatable__super(self, MethodName, ...)
+	local Thread = coroutine.running()
+	local InSuperclass = ThreadDepthTracker[Thread]
+	local PreviousClass = InSuperclass or self.__class
+	local Class = PreviousClass
+
+	while Class.HasSuperclass do
+		Class = Class.Superclass
+		local Function = Class.Methods[MethodName]
+
+		if Function and Function ~= PreviousClass.Methods[MethodName] then
+			if InSuperclass then
+				ThreadDepthTracker[Thread] = Class
+				return Function(self, ...)
+			else
+				local NewThread = coroutine.create(Function)
+				ThreadDepthTracker[NewThread] = Class
+
+				return ReturnHelper(coroutine.resume(NewThread, self, ...))
+			end
+		end
+	end
+
+	return Debug.Error("Could not find parent method " .. MethodName .. " of " .. PreviousClass.ClassName)
+end
+
+local PseudoInstance = {}
+
+local function DefaultInit(self, ...)
+	self:superinit(...)
+end
+
+local DataTableNames = SortedArray.new{"Events", "Methods", "Properties", "Internals"}
+local MethodIndex = DataTableNames:Find("Methods")
+
+local function Filter(this, self, ...)
+	-- Filter out `this` and convert to `self`
+	-- Try not to construct a table if possible (we keep it light up in here)
+
+	local ArgumentCount = select("#", ...)
+
+	if ArgumentCount > 2 then
+		local Arguments
+
+		for i = 1, ArgumentCount do
+			if select(i, ...) == this then
+				Arguments = {...} -- Create a table if absolutely necessary
+				Arguments[i] = self
+
+				for j = i + 1, ArgumentCount do -- Just loop through the rest normally if a table was already created
+					if Arguments[j] == this then
+						Arguments[j] = self
+					end
+				end
+
+				return unpack(Arguments)
+			end
+		end
+
+		return ...
+	else
+		if this == ... then -- Optimize for most cases where they only returned a single parameter
+			return self
+		else
+			return ...
+		end
+	end
+end
+
+local function superinit(self, ...)
+	local CurrentClass = self.currentclass
+
+	if CurrentClass.HasSuperclass then
+		self.currentclass = CurrentClass.Superclass
+	else
+		self.currentclass = nil
+		self.superinit = nil
+	end
+	
+	CurrentClass.Init(self, ...)
+end
+
+function PseudoInstance.Register(_, ClassName, ClassData, Superclass)
+	if type(ClassData) ~= "table" then Debug.Error("Register takes parameters (string ClassName, table ClassData, Superclass)") end
+
+	for i = 1, #DataTableNames do
+		local DataTableName = DataTableNames[i]
+
+		if not ClassData[DataTableName] then
+			ClassData[DataTableName] = {}
+		end
+	end
+
+	for Property, Function in next, ClassData.Properties do
+		if type(Function) == "table" then
+			ClassData.Properties[Property] = Typer.AssignSignature(2, Function, function(self, Value)
+				self:rawset(Property, Value)
+			end)
+		end
+	end
+
+	local Internals = ClassData.Internals
+
+	for i = 1, #Internals do
+		Internals[Internals[i]] = false
+		Internals[i] = nil
+	end
+
+	local Events = ClassData.Events
+
+	for i = 1, #Events do
+		Events[Events[i]] = Empty
+		Events[i] = nil
+	end
+
+	ClassData.Abstract = false
+
+	for MethodName, Method in next, ClassData.Methods do -- Wrap to give internal access to private metatable members
+		if Method == 0 then
+			ClassData.Abstract = true
+		else
+			ClassData.Methods[MethodName] = function(self, ...)
+				local this = Metatables[self]
+
+				if this then -- External method call
+					return Filter(this, self, Method(this, ...))
+				else -- Internal method call
+					return Method(self, ...)
+				end
+			end
+		end
+	end
+
+	if Superclass == nil then
+		Superclass = Templates.PseudoInstance
+	end
+
+	if Superclass then -- Copy inherited stuff into ClassData
+		ClassData.HasSuperclass = true
+		ClassData.Superclass = Superclass
+
+		for a = 1, #DataTableNames do
+			local DataTable = DataTableNames[a]
+			local ClassTable = ClassData[DataTable]
+			for i, v in next, Superclass[DataTable] do
+				if not ClassTable[i] then
+					ClassTable[i] = v == 0 and a == MethodIndex and Debug.Error(ClassName .. " failed to implement " .. i .. " from its superclass " .. Superclass.ClassName) or v
+				end
+			end
+		end
+	else
+		ClassData.HasSuperclass = false
+	end
+
+	ClassData.Init = ClassData.Init or DefaultInit
+	ClassData.ClassName = ClassName
+
+	-- Make properties of internal objects externally accessible
+	if ClassData.WrappedProperties then
+		for ObjectName, Properties in next, ClassData.WrappedProperties do
+			for i = 1, #Properties do
+				local Property = Properties[i]
+
+				ClassData.Properties[Property] = function(this, Value)
+					local Object = this[ObjectName]
+
+					if Object then
+						Object[Property] = Value
+					end
+
+					this:rawset(Property, Value)
+				end
+			end
+
+			local PreviousInit = ClassData.Init
+			ClassData.Init = function(self, ...)
+				PreviousInit(self, ...)
+
+				for i = 1, #Properties do
+					local Property = Properties[i]
+					local Object = self[ObjectName]
+					if self[Property] == nil and Object and Object[Property] ~= nil then
+						self[Property] = Object[Property]
+					end
+				end
+			end
+		end
+	end
+
+	ClassData.WrappedProperties = nil
+	local LockedClass = Table.Lock(ClassData)
+	Templates[ClassName] = LockedClass
+	return LockedClass
+end
+
+local function AccessProperty(self, Property)
+	local _ = self[Property]
+end
+
+PseudoInstance:Register("PseudoInstance", { -- Generates a rigidly defined userdata class with `.new()` instantiator
+	Internals = {
+		"Children", "PropertyChangedSignals", "Janitor";
+
+		rawset = function(self, Property, Value)
+			self.__rawdata[Property] = Value
+			local PropertyChangedSignal = self.PropertyChangedSignals and self.PropertyChangedSignals[Property]
+
+			if PropertyChangedSignal and PropertyChangedSignal.Active then
+				PropertyChangedSignal:Fire(Value)
+			end
+
+			return self
+		end;
+
+		SortByName = function(a, b)
+			return a.Name < b.Name
+		end;
+
+		ParentalChange = function(self)
+			local this = Metatables[self.Parent]
+
+			if this then
+				this.Children:Insert(self)
+			end
+		end;
+
+		ChildNameMatchesObject = function(ChildName, b)
+			return ChildName == b.Name
+		end;
+
+		ChildNamePrecedesObject = function(ChildName, b)
+			return ChildName < b.Name
+		end;
+
+		SetEventActive = function(Event)
+			Event.Active = true
+		end;
+
+		SetEventInactive = function(Event)
+			Event.Active = false
+		end;
+	};
+
+	Properties = { -- Only Indeces within this table are writable, and these are the default values
+		Archivable = Typer.Boolean; -- Values written to these indeces must match the initial type (unless it is a function, see below)
+		Parent = Typer.OptionalInstance;
+		Name = Typer.String;
+	};
+
+	Events = {
+		Changed = function(self)
+			local Assigned = Janitor.new()
+
+			return function(Event)
+				for Property in next, self.__class.Properties do
+					Assigned:Add(self:GetPropertyChangedSignal(Property):Connect(function()
+						Event:Fire(Property)
+					end), "Disconnect")
+				end
+			end, Assigned
+		end;
+	};
+
+	Methods = {
+		Clone = function(self)
+			if self.Archivable then
+				local CurrentClass = self.__class
+				local New = Resources:LoadLibrary("PseudoInstance").new(CurrentClass.ClassName)
+
+				repeat
+					for Property in next, CurrentClass.Properties do
+						if Property ~= "Parent" then
+							local Old = self[Property]
+							if Old ~= nil then
+								if Typer.Instance(Old) then
+									Old = Old:Clone()
+								end
+
+								New[Property] = Old
+							end
+						end
+					end
+					CurrentClass = CurrentClass.HasSuperclass and CurrentClass.Superclass
+				until not CurrentClass
+
+				return New
+			else
+				return nil
+			end
+		end;
+
+		GetFullName = function(self)
+			return (self.Parent and self.Parent:GetFullName() .. "." or "") .. self.Name
+		end;
+
+		IsDescendantOf = function(self, Grandparent)
+			return self.Parent == Grandparent or (self.Parent and self.Parent:IsDescendantOf(Grandparent)) or false
+		end;
+
+		GetPropertyChangedSignal = function(self, String)
+			if type(String) ~= "string" then Debug.Error("invalid argument 2: string expected, got %s", String) end
+			local PropertyChangedSignal = self.PropertyChangedSignals[String]
+
+			if not PropertyChangedSignal then
+				if not pcall(AccessProperty, self, String) then Debug.Error("%s is not a valid Property of " .. tostring(self), String) end
+				PropertyChangedSignal = Signal.new(self.SetEventActive, self.SetEventInactive)
+				self.Janitor:Add(PropertyChangedSignal, "Destroy")
+				self.PropertyChangedSignals[String] = PropertyChangedSignal
+			end
+
+			return PropertyChangedSignal.Event
+		end;
+
+		FindFirstChild = function(self, ChildName, Recursive)
+			local Children = self.Children
+
+			if Recursive then
+				for i = 1, #Children do
+					local Child = Children[i]
+
+					if Child.Name == ChildName then
+						return Child
+					end
+
+					local Grandchild = Child:FindFirstChild(ChildName, Recursive)
+
+					if Grandchild then
+						return Grandchild
+					end
+				end
+			else -- Much faster than recursive
+				return Children:Find(ChildName, self.ChildNameMatchesObject, self.ChildNamePrecedesObject)
+			end
+		end;
+
+		GetChildren = function(self)
+			return self.Children:Copy()
+		end;
+
+		IsA = function(self, ClassName)
+			local CurrentClass = self.__class
+
+			repeat
+				if ClassName == CurrentClass.ClassName then
+					return true
+				end
+				CurrentClass = CurrentClass.HasSuperclass and CurrentClass.Superclass
+			until not CurrentClass
+
+			return ClassName == "<<</sc>>>" -- This is a reference to the old Roblox chat...
+		end;
+
+		Destroy = function(self)
+			self.Archivable = false
+			self.Parent = nil
+
+			for GlobalSelf, InternalSelf in next, Metatables do
+				if self == InternalSelf then
+					self.Janitor[GlobalSelf] = nil
+					Metatables[GlobalSelf] = nil
+				end
+			end
+
+			self.Janitor:Cleanup()
+
+			-- Nuke the object
+			if self.__rawdata then
+				for i in next, self.__rawdata do
+					rawset(self.__rawdata, i, nil)
+				end
+			end
+
+			for i, v in next, self do
+				if Signal.IsA(v) then
+					v:Destroy()
+				end
+
+				rawset(self, i, nil)
+			end
+		end;
+	};
+
+	Init = function(self)
+		local Name = self.__class.ClassName
+
+		-- Default properties
+		self.Name = Name
+		self.Archivable = true
+
+		-- Read-only
+		self:rawset("ClassName", Name)
+
+		-- Internals
+		self.Children = SortedArray.new(nil, self.SortByName)
+		self.PropertyChangedSignals = {}
+
+		self:GetPropertyChangedSignal("Parent"):Connect(self.ParentalChange, self)
+	end;
+}, false)
+
+function PseudoInstance.new(ClassName, ...)
+	local Class = Templates[ClassName]
+
+	if not Class then
+		Resources:LoadLibrary(ClassName)
+		Class = Templates[ClassName] or Debug.Error("Invalid ClassName")
+	end
+
+	if Class.Abstract then
+		Debug.Error("Cannot instantiate an abstract " .. ClassName)
+	end
+
+	local self = newproxy(true)
+	local Mt = getmetatable(self)
+
+	-- This one can be overwritten by an internal function if so desired :D
+	Mt.rawset = Metatable__rawset
+
+	for i, v in next, Class.Internals do
+		Mt[i] = v
+	end
+
+	-- Internal members
+	Mt.__class = Class
+	Mt.__index = Metatable__index
+	Mt.__rawdata = {}
+	Mt.__newindex = Metatable__newindex
+	Mt.__tostring = Metatable__tostring
+	Mt.__metatable = "[PseudoInstance] Locked metatable"
+	Mt.__type = ClassName -- Calling `typeof` will error without having this value :/
+
+	-- Internally accessible methods
+	Mt.super = Metatable__super
+
+	-- These two are only around for instantiation and are cleared after a successful and full instantiation
+	Mt.superinit = superinit
+	Mt.currentclass = Class
+
+	-- Internally accessible cleaner
+	Mt.Janitor = Janitor.new()
+
+	Metatables[self] = setmetatable(Mt, Mt)
+
+	Mt.Janitor:Add(self, "Destroy")
+	Mt:superinit(...)
+
+	if rawget(Mt, "currentclass") then
+		local StoppedOnClass = Class
+		
+		while StoppedOnClass.HasSuperclass and StoppedOnClass.Superclass ~= Mt.currentclass do
+			StoppedOnClass = StoppedOnClass.Superclass
+		end
+		
+		Debug.Error("Must call self:superinit(...) from " .. StoppedOnClass.ClassName .. ".Init")
+	end
+
+	return self
+end
+
+function PseudoInstance.Make(ClassName, Properties, ...)
+	local Object = PseudoInstance.new(ClassName)
+	local Parent = Properties.Parent
+
+	if Parent then
+		Properties.Parent = nil
+	end
+
+	for Property, Value in next, Properties do
+		if type(Property) == "number" then
+			Value.Parent = Object
+		elseif Object[Property] ~= Value then
+			Object[Property] = Value
+		end
+	end
+
+	if Parent then
+		Object.Parent = Parent
+	end
+
+	if ... then
+		local Objects = {...}
+		for a = 1, #Objects do
+			local Object = Object:Clone()
+			for Property, Value in next, Objects[a] do
+				if type(Property) == "number" then
+					Value.Parent = Object
+				else
+					Object[Property] = Value
+				end
+			end
+			Object.Parent = not Object.Parent and Parent
+			Objects[a] = Object
+		end
+		return Object, unpack(Objects)
+	else
+		return Object
+	end
+end
+
+return Table.Lock(PseudoInstance)
+]]></ProtectedString>
+						<BinaryString name="Tags"></BinaryString>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="RBX633977171F954AD395B3CE2411626D37">
+					<Properties>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<Content name="LinkedSource"><null></null></Content>
+						<string name="Name">ReplicatedPseudoInstance</string>
+						<string name="ScriptGuid">{11B86EF0-8614-4D41-9D6B-79411C45B19A}</string>
+						<ProtectedString name="Source"><![CDATA[-- Auto-Replicating PseudoInstances
+-- @source https://raw.githubusercontent.com/RoStrap/Classes/master/ReplicatedPseudoInstance.lua
+-- @rostrap ReplicatedPseudoInstance
+-- @documentation https://rostrap.github.io/Libraries/Classes/ReplicatedPseudoInstance/
+-- @author Validark
+
+--[[
+	ReplicatedPseudoInstances are PseudoInstances which, when inherited from, automatically replicate.
+
+	CONSTRAINTS:
+		You can't have read-only values in a class which auto-replicates.
+			If you want that, use internal values and make a Get() function
+		Events of ReplicatedPseudoInstances should always be fired with LocalPlayer as the first parameter
+
+	BEHAVIOR:
+		PseudoInstances, when instantiated, replicate to all subscribers.
+			A "subscriber" is a Player which objects should be replicated to.
+			A single Player is a subscriber if the Object is a Descendant of their Player object
+			Every Player is a Subscriber if the Object is or is a Descendant of Workspace or ReplicatedStorage
+
+		Replication has two phases:
+			Initial Replication: this is when a table value is sent over with all the data in an object
+			Partial Replication: this is when a single property is updated
+
+	IMPLEMENTATION:
+		PseudoInstances with lower ParentalDepth are replicated before Objects with higher ParentalDepths
+			A ParentalDepth is the number of Parents an Object has before reaching game
+			This must be the case, because we can't replicate Objects which are parented to other PseudoInstances until after those Parental PseudoInstances exist
+
+--]]
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local IsServer = RunService:IsServer()
+local IsClient = RunService:IsClient()
+local ReplicateToClients = IsServer and not IsClient -- Don't Replicate in SoloTestMode
+local ReplicateToServer = not IsServer and IsClient
+
+local Resources = require(ReplicatedStorage:WaitForChild("Resources"))
+local Debug = Resources:LoadLibrary("Debug")
+local Enumeration = Resources:LoadLibrary("Enumeration")
+local SortedArray = Resources:LoadLibrary("SortedArray")
+local PseudoInstance = Resources:LoadLibrary("PseudoInstance")
+
+local Templates = Resources:GetLocalTable("Templates")
+
+local RemoteEvent = Resources:GetRemoteEvent("PseudoInstanceReplicator")
+local RemoteFunction = Resources:GetRemoteFunction("PseudoInstanceStartupVerify")
+
+local AutoReplicatedInstances = {}
+local LoadedPlayers = setmetatable({}, {__mode = "k"})
+
+local FireClient
+
+local function YieldUntilReadyToFire(Player, ...)
+	repeat until LoadedPlayers[Player] or not wait()
+	FireClient(Player, ...)
+end
+
+function FireClient(Player, ...)
+	local Old = LoadedPlayers[Player]
+
+	if Old then
+		LoadedPlayers[Player] = Old + 1
+		RemoteEvent:FireClient(Player, Old + 1, ...)
+	else
+		coroutine.resume(coroutine.create(YieldUntilReadyToFire), Player, ...)
+	end
+end
+
+local function FireAllClientsExcept(Player1, ...)
+	local Playerlist = Players:GetPlayers()
+
+	for i = 1, #Playerlist do
+		local Player2 = Playerlist[i]
+
+		if Player1 ~= Player2 then
+			FireClient(Player2, ...)
+		end
+	end
+end
+
+local SubscribingIndividuals = {} -- For when only ONE player receives updates
+local ParentalDepths = {}
+
+-- A SortedArray of Ids to objects sorted according to Parental depth
+-- This will ensure that you don't replicate child instances and try to set their parents before the parents exist
+local ReplicationOrder = SortedArray.new(nil, function(a, b)
+	local d_a = ParentalDepths[a]
+	local d_b = ParentalDepths[b]
+
+	if d_a == d_b then
+		return a < b
+	else
+		return d_a < d_b
+	end
+end)
+
+local function ReplicateUpdateToInterestedParties(self, Id, i, v)
+	if AutoReplicatedInstances[Id] then
+		FireAllClientsExcept(nil, self.__class.ClassName, Id, i, v)
+	else
+		local PlayerToReplicateTo = SubscribingIndividuals[Id]
+
+		if PlayerToReplicateTo then
+			FireClient(PlayerToReplicateTo, self.__class.ClassName, Id, i, v)
+		end
+	end
+end
+
+local function OnPropertyChanged(self, i)
+	local v = self[i]
+	local Id = self.__id
+
+	if i == "Parent" then
+		local PlayerToReplicateTo
+
+		if v then
+			local ReplicateToAllPlayers = v == Players or v == Workspace or v == ReplicatedStorage or v:IsDescendantOf(Workspace) or v:IsDescendantOf(ReplicatedStorage)
+
+			if not ReplicateToAllPlayers and v:IsDescendantOf(Players) then
+				PlayerToReplicateTo = v
+				while PlayerToReplicateTo.ClassName ~= "Player" do
+					PlayerToReplicateTo = PlayerToReplicateTo.Parent
+				end
+			end
+
+			-- If replicating to the server, we want to cache these and replicate them upon player joining (conditional upon parent)
+			if ReplicateToAllPlayers then
+				-- Get parental depth and cache it
+				local ParentalDepth = 0
+				local Current = self
+
+				repeat
+					Current = Current.Parent
+					ParentalDepth = ParentalDepth + 1
+				until Current == nil
+
+				local Position = ReplicationOrder:Find(Id)
+				ParentalDepths[Id] = ParentalDepth
+				AutoReplicatedInstances[Id] = self
+
+				if Position then
+					ReplicationOrder:SortIndex(Position)
+				else
+					ReplicationOrder:Insert(Id)
+				end
+
+				FireAllClientsExcept(SubscribingIndividuals[Id], self.__class.ClassName, Id, self.__rawdata)
+				SubscribingIndividuals[Id] = nil
+
+				return
+			elseif PlayerToReplicateTo then
+				SubscribingIndividuals[Id] = PlayerToReplicateTo
+				FireClient(PlayerToReplicateTo, self.__class.ClassName, Id, self.__rawdata)
+			end
+		end
+
+		if not PlayerToReplicateTo then
+			local PreviousSubscriber = SubscribingIndividuals[Id]
+
+			if PreviousSubscriber then
+				FireClient(PreviousSubscriber, self.__class.ClassName, Id)
+				SubscribingIndividuals[Id] = nil
+			end
+		end
+
+		-- If Parent was set to something that doesn't ReplicateToAllPlayers, take it out of auto-replicate
+		if AutoReplicatedInstances[Id] then -- Destroy the element if it was previously replicating
+			-- Destroy for everyone but who we are now replicating to (may be nil)
+			FireAllClientsExcept(PlayerToReplicateTo, self.__class.ClassName, Id)
+			AutoReplicatedInstances[Id] = nil
+			ReplicationOrder:RemoveElement(Id)
+		end
+	else
+		ReplicateUpdateToInterestedParties(self, Id, i, v)
+	end
+end
+
+if ReplicateToClients then
+	Players.PlayerAdded:Connect(function(Player)
+		if RemoteFunction:InvokeClient(Player) then -- Yield until player loads
+			local NumReplicationOrder = #ReplicationOrder
+
+			for i = 1, NumReplicationOrder do
+				local Id = ReplicationOrder[i]
+				local self = AutoReplicatedInstances[Id]
+
+				RemoteEvent:FireClient(Player, i, self.__class.ClassName, Id, self.__rawdata)
+			end
+
+			LoadedPlayers[Player] = NumReplicationOrder
+		end
+	end)
+
+	RemoteEvent.OnServerEvent:Connect(function(Player, ClassName, Id, Event, ...) -- Fire events on the Server after they are fired on the client
+		Event = (Templates[ClassName].Storage[Id] or Debug.Error("Object not found"))[Event]
+		-- On the server, the first parameter will always be Player. This removes a duplicate.
+		-- This also adds some security because a client cannot simply spoof it
+
+		Event:Fire(Player, select(2, ...))
+	end)
+elseif ReplicateToServer then
+	local OnClientEventNumber = 1 -- Guarenteed that this will resolve in the order in which replication is intended to occur
+
+	RemoteEvent.OnClientEvent:Connect(function(EventNumber, ClassName, Id, RawData, Assigned) -- Handle objects being replicated to clients
+		repeat until OnClientEventNumber == EventNumber or not wait()
+
+		local Template = Templates[ClassName]
+
+		if not Template then
+			Resources:LoadLibrary(ClassName)
+			Template = Templates[ClassName] or Debug.Error("Invalid ClassName")
+		end
+
+		local Object = Template.Storage[Id]
+
+		if not Object then
+			Object = PseudoInstance.new(ClassName, Id)
+			Template.Storage[Id] = Object
+		end
+
+		local RawDataType = type(RawData)
+
+		if RawDataType == "table" then
+			for Property, Value in next, RawData do
+				if Object[Property] ~= Value then
+					Object[Property] = Value
+				end
+			end
+		elseif RawDataType == "nil" then
+			Object:Destroy()
+		elseif RawDataType == "string" then
+			Object[RawData] = Assigned
+		else
+			Debug.Error("Invalid RawData type, expected table, nil, or string, got %s", RawDataType)
+		end
+
+		OnClientEventNumber = OnClientEventNumber + 1
+	end)
+
+	function RemoteFunction.OnClientInvoke()
+		return true
+	end
+end
+
+local Ids = 0 -- Globally shared Id for instances, would break beyond 2^53 instances ever
+
+return PseudoInstance:Register("ReplicatedPseudoInstance", {
+	Storage = false; -- Mark this Class as abstract
+	Internals = {"__id"};
+	Properties = {};
+	Events = {};
+	Methods = {
+		Destroy = function(self)
+			local Id = self.__id
+
+			if Id then
+				self.__class.Storage[Id] = nil
+				ReplicationOrder:RemoveElement(Id)
+
+				if ReplicateToClients then -- Replicate Destroy
+					ReplicateUpdateToInterestedParties(self, Id)
+				end
+
+				SubscribingIndividuals[Id] = nil
+				AutoReplicatedInstances[Id] = nil
+			end
+			self:super("Destroy")
+		end;
+	};
+
+	Init = function(self, Id)
+		self:superinit()
+
+		if ReplicateToClients then
+			if not Id then
+				Id = Ids + 1
+				Ids = Id
+			end
+			self.Changed:Connect(OnPropertyChanged, self)
+		elseif ReplicateToServer then
+			if Id then
+				for Event in next, self.__class.Events do
+					if Event ~= "Changed" then
+						self[Event]:Connect(function(...)
+							RemoteEvent:FireServer(self.__class.ClassName, Id, Event, ...)
+						end)
+					end
+				end
+			end
+		end
+
+		if Id then
+			(self.__class.Storage or Debug.Error(self.__class.ClassName .. " is an abstract class and cannot be instantiated"))[Id] = self
+			self.__id = Id
+		end
+	end;
+})
+]]></ProtectedString>
+						<BinaryString name="Tags"></BinaryString>
+					</Properties>
+				</Item>
+			</Item>
+			<Item class="Folder" referent="RBXE847E79A413F49EBA1E8DC1A7FAB2BAA">
+				<Properties>
+					<BinaryString name="AttributesSerialize"></BinaryString>
+					<string name="Name">Events</string>
+					<BinaryString name="Tags"></BinaryString>
+				</Properties>
+				<Item class="ModuleScript" referent="RBX179FF5B32FD6447FBA9C50A8FCC9CADB">
+					<Properties>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<Content name="LinkedSource"><null></null></Content>
+						<string name="Name">Janitor</string>
+						<string name="ScriptGuid">{1CA31EDB-E914-4716-B328-93A2CFF37BF9}</string>
+						<ProtectedString name="Source"><![CDATA[-- Light-weight, flexible object for cleaning up connections, instances, etc.
+-- @documentation https://rostrap.github.io/Libraries/Events/Janitor/
+-- @source https://raw.githubusercontent.com/RoStrap/Events/master/Janitor.lua
+-- @rostrap Janitor
+-- @author Validark
+
+local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
+local Table = Resources:LoadLibrary("Table")
+local FastSpawn = Resources:LoadLibrary("FastSpawn")
+
+-- Just a reference that can't ever be accessed but will be used as an index for LinkToInstance
+local LinkToInstanceIndex = newproxy(false)
+
+local Janitors = setmetatable({}, {__mode = "k"})
+local Janitor = {}
+Janitor.__index = {CurrentlyCleaning = true}
+
+local TypeDefaults = {
+	["function"] = true;
+	["RBXScriptConnection"] = "Disconnect";
+}
+
+function Janitor.new()
+	return setmetatable({CurrentlyCleaning = false}, Janitor)
+end
+
+function Janitor.__index:Add(Object, MethodName, Index)
+	if Index then
+		self:Remove(Index)
+
+		local this = Janitors[self]
+
+		if not this then
+			this = {}
+			Janitors[self] = this
+		end
+
+		this[Index] = Object
+	end
+
+	self[Object] = MethodName or TypeDefaults[typeof(Object)] or "Destroy"
+	return Object
+end
+
+function Janitor.__index:Remove(Index)
+	local this = Janitors[self]
+
+	if this then
+		local Object = this[Index]
+
+		if Object then
+			local MethodName = self[Object]
+
+			if MethodName then
+				if MethodName == true then
+					Object()
+				else
+					Object[MethodName](Object)
+				end
+				self[Object] = nil
+			end
+
+			this[Index] = nil
+		end
+	end
+end
+
+function Janitor.__index:Cleanup()
+	if not self.CurrentlyCleaning then
+		self.CurrentlyCleaning = nil -- A little trick to exclude the Debouncer from the loop below AND set it to true via __index :)
+
+		for Object, MethodName in next, self do
+			if MethodName == true then
+				Object()
+			else
+				Object[MethodName](Object)
+			end
+			self[Object] = nil
+		end
+
+		local this = Janitors[self]
+
+		if this then
+			for Index in next, this do
+				this[Index] = nil
+			end
+			Janitors[self] = nil
+		end
+
+		self.CurrentlyCleaning = false
+	end
+end
+
+function Janitor.__index:Destroy()
+	self:Cleanup()
+	setmetatable(self, nil)
+end
+
+Janitor.__call = Janitor.__index.Cleanup
+
+--- Makes the Janitor clean up when the instance is destroyed
+-- @param Instance Instance The Instance the Janitor will wait for to be Destroyed
+-- @returns Disconnectable table to stop Janitor from being cleaned up upon Instance Destroy (automatically cleaned up by Janitor, btw)
+-- @author Corecii
+
+local Disconnect = {Connected = true}
+Disconnect.__index = Disconnect
+function Disconnect:Disconnect()
+	self.Connected = false
+	self.Connection:Disconnect()
+end
+
+function Janitor.__index:LinkToInstance(Object, AllowMultiple)
+	local Reference = Instance.new("ObjectValue")
+	Reference.Value = Object
+	-- ObjectValues have weak-like Instance references
+	-- If the Instance can no longer be accessed then it can be collected despite
+	--  the ObjectValue having a reference to it
+	local ManualDisconnect = setmetatable({}, Disconnect)
+	local Connection
+	local function ChangedFunction(Obj, Par)
+		if not Reference.Value then
+			ManualDisconnect.Connected = false
+			return self:Cleanup()
+		elseif Obj == Reference.Value and not Par then
+			Obj = nil
+			wait()  -- Push further execution of this script to the end of the current execution cycle
+					  --  This is needed because when the event first runs it's always still Connected
+			-- The object may have been reparented or the event manually disconnected or disconnected and ran in that time...
+			if (not Reference.Value or not Reference.Value.Parent) and ManualDisconnect.Connected then
+				if not Connection.Connected then
+					ManualDisconnect.Connected = false
+					return self:Cleanup()
+				else
+					-- Since this event won't fire if the instance is destroyed while in nil, we have to check
+					--  often to make sure it's not destroyed. Once it's parented outside of nil we can stop doing
+					--  this. We also must check to make sure it wasn't manually disconnected or disconnected and ran.
+					while wait(0.2) do
+						if not ManualDisconnect.Connected then
+							-- Don't run func, we were disconnected manually
+							return
+						elseif not Connection.Connected then
+							-- Otherwise, if we're disconnected it's because instance was destroyed
+							ManualDisconnect.Connected = false
+							return self:Cleanup()
+						elseif Reference.Value.Parent then
+							-- If it's still Connected then it's not destroyed. If it has a parent then
+							--  we can quit checking if it's destroyed like this.
+							return
+						end
+					end
+				end
+			end
+		end
+	end
+	Connection = Object.AncestryChanged:Connect(ChangedFunction)
+	ManualDisconnect.Connection = Connection
+	Object = nil
+	-- If the object is currently in nil then we need to start our destroy checking loop
+	-- We need to spawn a new Roblox Lua thread right now before any other code runs.
+	--  spawn() starts it on the next cycle or frame, coroutines don't have ROBLOX's coroutine.yield handler
+	--  The only option left is BindableEvents, which run as soon as they are called and use ROBLOX's yield
+	FastSpawn(ChangedFunction, Reference.Value, Reference.Value.Parent)
+
+	if AllowMultiple then -- Give Task to Janitor, cleanup this Connection upon cleanup
+		self:Add(ManualDisconnect, "Disconnect")
+	else
+		self:Add(ManualDisconnect, "Disconnect", LinkToInstanceIndex)
+	end
+
+	return ManualDisconnect
+end
+
+return Table.Lock(Janitor)
+]]></ProtectedString>
+						<BinaryString name="Tags"></BinaryString>
+					</Properties>
+				</Item>
+				<Item class="ModuleScript" referent="RBXA748E9864C0A4DAEB93620E24E617D90">
+					<Properties>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<Content name="LinkedSource"><null></null></Content>
+						<string name="Name">Signal</string>
+						<string name="ScriptGuid">{03D2B082-B665-4F71-9F09-33C5C337C8D6}</string>
+						<ProtectedString name="Source"><![CDATA[-- Connection-based PseudoEvents (BindableEvent wrapper)
+-- @documentation https://rostrap.github.io/Libraries/Events/Signal/
+-- @source https://raw.githubusercontent.com/RoStrap/Events/master/Signal.lua
+-- @rostrap Signal
+-- @author Validark
+-- @original https://gist.github.com/Anaminus/afd813efc819bad8e560caea28942010
+
+local Resources = require(game:GetService("ReplicatedStorage"):WaitForChild("Resources"))
+local Table = Resources:LoadLibrary("Table")
+local Debug = Resources:LoadLibrary("Debug")
+
+-- These hold references to metatables for after we lock __metatable to a string
+local Signals = setmetatable({}, {__mode = "k"})
+local EventInterfaces = setmetatable({}, {__mode = "kv"})
+local PseudoConnections = setmetatable({}, {__mode = "kv"})
+
+local function BadIndex(_, i, t)
+	Debug.Error("%q is not a valid member of " .. (t or "RBXScriptSignal"), i)
+end
+
+local Event = setmetatable({}, {__index = BadIndex})
+
+function Event:Connect(Function, Arg)
+	return EventInterfaces[self]:Connect(Function, Arg)
+end
+
+function Event:Wait()
+	return EventInterfaces[self]:Wait()
+end
+
+local Signal = {
+	__index = {
+		NextId = 0; -- Holds the next Arguments ID
+		YieldingThreads = 0; -- Number of Threads waiting on the signal
+	}
+}
+
+local function GetArguments(self, Id)
+	local Arguments = self.Arguments[Id]
+	local ThreadsRemaining = Arguments.NumConnectionsAndThreads - 1
+
+	if ThreadsRemaining == 0 then
+		self.Arguments[Id] = nil
+	else
+		Arguments.NumConnectionsAndThreads = ThreadsRemaining
+	end
+
+	return unpack(Arguments, 1, Arguments.n)
+end
+
+local function Destruct(self)
+	local ConstructorData = self.ConstructorData
+	if self.Destructor and ConstructorData then
+		self:Destructor(unpack(ConstructorData, 1, ConstructorData.n))
+		self.ConstructorData = nil
+	end
+end
+
+local function pack(...) -- This is useful because trailing nil's on the stack may be preserved
+	return {n = select("#", ...), ...}
+end
+
+local function Disconnect(self)
+	self = PseudoConnections[self]
+
+	if self.Connection then
+		self.Connection:Disconnect()
+		self.Connection = nil
+	end
+
+	local Signal = self.Signal
+
+	if Signal then
+		self.Connected = false
+		local Connections = Signal.Connections
+		local NumConnections = #Connections
+
+		for i = 1, NumConnections do
+			if Connections[i] == self then
+				table.remove(Connections, i)
+
+				if NumConnections == 1 then
+					Destruct(Signal)
+				end
+				break
+			end
+		end
+
+		self.Signal = nil
+	end
+end
+
+local function PseudoConnection__index(self, i)
+	if i == "Disconnect" then
+		return Disconnect
+	elseif i == "Connected" then
+		return PseudoConnections[self].Connected
+	else
+		BadIndex(self, i, "RBXScriptConnection")
+	end
+end
+
+local function RBXScriptConnectionToString()
+	return "RBXScriptConnection"
+end
+
+local function RBXScriptSignalToString()
+	return "RBXScriptSignal"
+end
+
+function Signal.new(Constructor, Destructor)
+	local self = setmetatable({
+		Bindable = Instance.new("BindableEvent"); -- Dispatches scheduler-compatible Threads
+		Arguments = {}; -- Holds arguments for pending listener functions and Threads: [Id] = {#Connections + YieldingThreads, arguments}
+		Connections = {}; -- SignalConnections connected to the signal
+		Constructor = Constructor; -- Constructor function
+		Destructor = Destructor; -- Destructor function
+		Event = newproxy(true); -- Event interface which can only access Connect() and Wait()
+	}, Signal)
+
+	local EventMt = getmetatable(self.Event)
+	EventMt.__index = Event
+	EventMt.__metatable = "The metatable is locked"
+	EventMt.__type = "RBXScriptSignal"
+	EventMt.__tostring = RBXScriptSignalToString
+	EventInterfaces[self.Event] = self
+	Signals[self] = true
+
+	return self
+end
+
+function Signal.IsA(Object)
+	return Signals[Object] or false
+end
+
+function Signal.__index:Connect(Function, Arg)
+	local NumConnections = #self.Connections
+
+	if NumConnections == 0 and self.Constructor and not self.ConstructorData then
+		self.ConstructorData = pack(self:Constructor())
+	end
+
+	local Connection = newproxy(true)
+	local ConnectionMt = getmetatable(Connection)
+	ConnectionMt.Connected = true
+	ConnectionMt.__metatable = "The metatable is locked"
+	ConnectionMt.__type = "RBXScriptConnection"
+	ConnectionMt.__tostring = RBXScriptConnectionToString
+	ConnectionMt.__index = PseudoConnection__index
+	ConnectionMt.Signal = self
+	ConnectionMt.Connection = self.Bindable.Event:Connect(function(Id)
+		if Arg then
+			Function(Arg, GetArguments(self, Id))
+		else
+			Function(GetArguments(self, Id))
+		end
+	end)
+
+	PseudoConnections[Connection] = ConnectionMt
+	self.Connections[NumConnections + 1] = ConnectionMt
+	return Connection
+end
+
+function Signal.__index:Fire(...)
+	local Id = self.NextId
+	local Stack = pack(...)
+	local NumConnectionsAndThreads = #self.Connections + self.YieldingThreads
+
+	Stack.NumConnectionsAndThreads = NumConnectionsAndThreads
+
+	self.NextId = Id + 1
+	self.Arguments[Id] = Stack
+	self.YieldingThreads = nil
+
+	if NumConnectionsAndThreads > 0 then
+		self.Bindable:Fire(Id)
+	end
+end
+
+function Signal.__index:Wait()
+	self.YieldingThreads = self.YieldingThreads + 1
+	return GetArguments(self, self.Bindable.Event:Wait())
+end
+
+function Signal.__index:Destroy()
+	Destruct(self)
+
+	self.Bindable = self.Bindable:Destroy()
+	local Connections = self.Connections
+
+	for i = #Connections, 1, -1 do
+		local Connection = Connections[i]
+		Connection.Connected = false
+		Connection.Signal = nil
+		Connection.Connection = nil
+		Connections[i] = nil
+	end
+
+	self.YieldingThreads = nil
+	self.Arguments = nil
+	self.Connections = nil
+	setmetatable(self, nil)
+end
+
+return Table.Lock(Signal)
+]]></ProtectedString>
+						<BinaryString name="Tags"></BinaryString>
+					</Properties>
+				</Item>
+			</Item>
+			<Item class="Folder" referent="RBX290330257643432DA0041793254AB23E">
+				<Properties>
+					<BinaryString name="AttributesSerialize"></BinaryString>
+					<string name="Name">Helper</string>
+					<BinaryString name="Tags"></BinaryString>
+				</Properties>
+				<Item class="ModuleScript" referent="RBX35CF62F402B544B0B731FBE3C0229EAE">
+					<Properties>
+						<BinaryString name="AttributesSerialize"></BinaryString>
+						<Content name="LinkedSource"><null></null></Content>
+						<string name="Name">FastSpawn</string>
+						<string name="ScriptGuid">{069FAA35-8329-4429-908E-03476B036FFB}</string>
+						<ProtectedString name="Source"><![CDATA[-- Spawns a new thread without waiting one step
+-- @documentation https://rostrap.github.io/Libraries/Helper/FastSpawn/
+-- @source https://raw.githubusercontent.com/RoStrap/Helper/master/FastSpawn.lua
+-- @rostrap FastSpawn
+-- @author Validark
+
+local Instance_new = Instance.new
+
+local function FastSpawn(Func, ...)
+    --- Spawns a new thread to run a function on without waiting one step
+    -- @param function Func The function to run on a new thread
+	-- @{...} parameters to pass to Func
+
+
+    local Bindable = Instance_new("BindableEvent")
+
+	if ... ~= nil then
+		local t = {...}
+		Bindable.Event:Connect(function()
+			Func(unpack(t))
+		end)
+	else
+		Bindable.Event:Connect(Func)
+	end
+
+    Bindable:Fire()
+    Bindable:Destroy()
+end
+
+return FastSpawn
+]]></ProtectedString>
+						<BinaryString name="Tags"></BinaryString>
+					</Properties>
+				</Item>
+			</Item>
+		</Item>
+		<Item class="Folder" referent="RBXF08403BFAAE64C59B0CBB8D17EB1A67B">
+			<Properties>
+				<BinaryString name="AttributesSerialize"></BinaryString>
+				<string name="Name">Game</string>
+				<BinaryString name="Tags"></BinaryString>
+			</Properties>
+		</Item>
+	</Item>
+</roblox>

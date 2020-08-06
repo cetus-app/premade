@@ -1,5 +1,5 @@
 {
-    "name": "ingame-admin",
+    "name": "promotion-centre",
     "tree": {
       "$className": "DataModel",
       "HttpService": {
@@ -10,18 +10,42 @@
       },
       "ServerScriptService": {
         "$className": "ServerScriptService",
-        "cetus-admin": {
-          "$path": "src",
+        "promotionServer": {
+          "$path": "src/server",
           "dependencies": {
             "$className": "Folder",
-            "cmdr": {
-              "$path": "../../Cmdr/Cmdr"
-            },
             "cetus-rbx": {
               "$path": "../../cetus-rbx/src/cetus"
             }
           }
-         
+        }
+      },
+      "ServerStorage": {
+        "$className": "ServerStorage",
+        "Repository": {
+          "$path": "src/Repository.rbxmx"
+        }
+      },
+        "StarterPlayer": {
+          "$className": "StarterPlayer",
+          "StarterPlayerScripts": {
+            "$className": "StarterPlayerScripts",
+            "promotionClient": {
+              "$className": "Folder",
+              "$path": "src/client"
+          }
+        }
+      },
+      "ReplicatedStorage": {
+        "$className": "ReplicatedStorage",
+        "$ignoreUnknownInstances": true,
+        "$path": "src/ReplicatedStorage"
+      },
+      "Workspace": {
+        "$className": "Workspace",
+        "$ignoreUnknownInstances": true,
+        "stage": {
+          "$path": "src/stage.rbxmx"
         }
       }
     }
