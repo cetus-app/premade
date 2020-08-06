@@ -43,8 +43,7 @@ function Promo.new(opt)
 
 	newClass.config = opt
 	newClass.http = cetusRbx({
-		token = opt.token,
-		_overrideBase = "http://localhost:4000"
+		token = opt.token
 	})
 	game:GetService("Players").PlayerAdded:connect(function (plr)
 		newClass:handlePlayerJoin(plr)
