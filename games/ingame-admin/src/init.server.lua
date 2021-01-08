@@ -1,30 +1,35 @@
 --[[
     Cetus.app
     Premade integration: In-game admin
-    Version: 0.0.1
+    Version: 1.0.0
 
     This integration makes use of the fantastic Cmdr tool.
     https://eryn.io/Cmdr/
 ]]
 
--- Configuration
-
--- Whether or not you want to use built-in Cmdr commands, like Kick, announce & bring
-local useDefaultCommands = false
-
-
 local PlayerScripts = game:GetService("StarterPlayer"):WaitForChild("StarterPlayerScripts")
 local clientCode = script.client
+local config = require(script.config)
 
 -- Initialise Cmdr
 
 local Cmdr = require(script.dependencies.cmdr)
 require(script.cetus)
 
-if useDefaultCommands then
-    Cmdr:RegisterDefaultCommands()
+local commandsToRegister = {"Help"}
+
+if config.useDefaultAdmin then
+    table.insert(commandsToRegister, "DefaultAdmin")
 end
 
+if config.useDefaultDebug then
+    table.insert(commandsToRegister, "DefaultDebug")
+end
+
+-- Register default commands. At minimum, this registers help.
+Cmdr:RegisterDefaultCommands(commandsToRegister)
+
+-- Register our custom commands.
 Cmdr:RegisterCommandsIn(script.commands)
 
 

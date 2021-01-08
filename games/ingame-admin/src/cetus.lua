@@ -3,6 +3,5 @@
 local cetus = require(script.Parent.dependencies:WaitForChild("cetus-rbx"))
 local config = require(script.Parent.config)
 return cetus({
-    token = config.token,
-    _overrideBase = "http://localhost:4000"
+    token = config.token
 })

@@ -33,4 +33,17 @@ return {
         }
     ]]
     admins = {}
+    -- Commands configuration. The help command is globally enabled.
+    -- You can find information about usage and default commands here: https://eryn.io/Cmdr/guide/Commands.html#default-commands
+
+    -- useDefaultAdmin: boolean
+    -- If true, defaultCommands will be registered (built in to Cmdr)
+    -- Command list: announce (m), bring, kick, teleport (tp), kill, respawn, to
+    useDefaultAdmin = true,
+
+
+    -- useDefaultDebug: boolean
+    -- if true, defaultDebug commands will be registered.
+    -- Command list: blink (b), thru (t), position, version, fetch, get-player-place-instance, uptime
+    useDefaultDebug = false
 }
