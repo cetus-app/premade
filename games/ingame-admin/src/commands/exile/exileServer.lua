@@ -17,7 +17,7 @@ return function (context, players, rank)
     end
 
     local function exile (plr)
-        local resp = cetus.exile(plr.UserId)
+        local resp = cetus:exile(plr.UserId)
         if resp.error then
             return "Failed to rank " .. plr.Name .. ": " .. resp.error.message
         end

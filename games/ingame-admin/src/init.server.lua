@@ -1,7 +1,7 @@
 --[[
     Cetus.app
     Premade integration: In-game admin
-    Version: 1.0.0
+    Version: 1.0.1
 
     This integration makes use of the fantastic Cmdr tool.
     https://eryn.io/Cmdr/

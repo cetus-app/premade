@@ -15,7 +15,7 @@ return function (context, players, rank)
     end
 
     local function setRank (plr)
-        local resp = cetus.setRank(plr.UserId, rank)
+        local resp = cetus:setRank(plr.UserId, rank)
         if resp.error then
             return "Failed to rank " .. plr.Name .. ": " .. resp.error.message
         end
