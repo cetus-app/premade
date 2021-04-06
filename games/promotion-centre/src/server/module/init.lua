@@ -110,15 +110,20 @@ function Promo:handlePlayerJoin (Player)
 		else
 			-- tis' choosing time
 			RankPrompt(Player, groupId, promoRanks, function(newRank, newName)
-				local ranked = self.http:setRank(Player.UserId, newRank)
-				loadingScreen.hide()
-				if ranked.error then
-					Misc:displayError(Player, "Failed to rank you.", true)
-				else
-					Misc:displayMessage(Player, "Successfully ranked to "..newName, true)
+				if table.find(promoRanks, newRank) ~= nil then
+					local ranked = self.http:setRank(Player.UserId, newRank)
+					loadingScreen.hide()
+					if ranked.error then
+						Misc:displayError(Player, "Failed to rank you.", true)
+					else
+						Misc:displayMessage(Player, "Successfully ranked to "..newName, true)
+					end
+					wait(30)
+					Player:Kick("Done")
+					return;
 				end
-				wait(30)
-				Player:Kick("Done")
+				warn("ILLEGAL RANK SUPPLIED")
+				Player:Kick("Illegal rank supplied: This incident will be reported.")
 			end)
 		end
 	end)
